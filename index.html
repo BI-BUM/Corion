@@ -1,49 +1,72 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-  <meta charset="UTF-8">
-  <title>Badminton Scheduler</title>
+  <meta charset="utf-8" />
+  <title>Badminton Match Scheduler (改良版)</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
   <style>
-    body { font-family: sans-serif; text-align: center; background: #f5f5f5; }
-    .controls { margin: 20px; padding: 10px; background: #fff; border-radius: 10px; display: inline-block; }
-    .courts { display: flex; flex-wrap: wrap; justify-content: center; gap: 15px; margin-top: 20px; }
-    .court { background: #fff; border: 2px solid #333; border-radius: 12px; width: 200px; height: 120px;
-             display: flex; flex-direction: column; align-items: center; justify-content: center;
-             cursor: pointer; box-shadow: 2px 2px 5px rgba(0,0,0,0.2); }
-    .court h3 { margin: 0; font-size: 18px; }
-    .court p { margin: 5px 0 0; font-size: 16px; }
-    #log { margin-top: 15px; color: green; font-weight: bold; }
+    :root{--bg:#f5f7fb;--card:#ffffff;--accent:#2b8cff;--muted:#666;}
+    body{font-family:system-ui,-apple-system,Segoe UI,Roboto,"Hiragino Kaku Gothic ProN",Meiryo,Arial;margin:0;padding:20px;background:var(--bg);color:#222}
+    h1{margin:0 0 12px;font-size:20px}
+    .controls{background:var(--card);padding:14px;border-radius:12px;box-shadow:0 4px 12px rgba(15,30,60,0.06);display:inline-block;width:100%;max-width:900px}
+    .row{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:8px}
+    label{font-size:14px;color:var(--muted)}
+    input[type=range]{width:180px}
+    .buttons{display:flex;gap:8px;flex-wrap:wrap}
+    button{background:var(--accent);color:#fff;border:none;padding:8px 12px;border-radius:8px;cursor:pointer}
+    button.secondary{background:#eee;color:#222}
+    .courts-wrap{margin-top:18px;display:flex;flex-wrap:wrap;gap:14px}
+    .court{width:200px;height:120px;background:var(--card);border-radius:12px;box-shadow:0 6px 18px rgba(20,30,60,0.06);display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;transition:transform .08s, box-shadow .08s}
+    .court:hover{transform:translateY(-4px);box-shadow:0 10px 24px rgba(20,30,60,0.08)}
+    .court h3{margin:0;font-size:16px}
+    .court p{margin:6px 0 0;font-weight:600}
+    #log{margin-top:12px;min-height:20px;color:#1b7a35;font-weight:600}
+    .input-remove{display:inline-flex;align-items:center;gap:6px}
+    input[type=number]{width:84px;padding:6px;border-radius:8px;border:1px solid #ddd}
+    table{margin-top:20px;border-collapse:collapse;width:100%;max-width:600px;background:var(--card);box-shadow:0 4px 10px rgba(0,0,0,0.05);border-radius:8px;overflow:hidden}
+    th,td{border:1px solid #ddd;padding:6px 10px;text-align:center}
+    th{background:#f0f4ff}
+    @media(max-width:640px){ .court{width:48%;} }
   </style>
 </head>
 <body>
-  <h1>バドミントン試合スケジューラー</h1>
+  <h1>バドミントン試合スケジューラー（改良版）</h1>
 
   <div class="controls">
-    <div>
-      <label>人数: <span id="numPlayersVal">4</span></label>
-      <input type="range" id="numPlayers" min="2" max="20" value="4">
+    <div class="row">
+      <label>人数: <strong id="numPlayersVal">4</strong></label>
+      <input id="numPlayers" type="range" min="2" max="50" value="4">
+      <label style="margin-left:18px">コート数: <strong id="numCourtsVal">2</strong></label>
+      <input id="numCourts" type="range" min="1" max="12" value="2">
     </div>
-    <div>
-      <label>コート数: <span id="numCourtsVal">2</span></label>
-      <input type="range" id="numCourts" min="1" max="5" value="2">
-    </div>
-    <div>
+
+    <div class="row">
       <label><input type="radio" name="mode" value="s" checked> シングルス</label>
       <label><input type="radio" name="mode" value="d"> ダブルス</label>
     </div>
-    <div>
-      <button id="generate">試合生成</button>
+
+    <div class="row buttons">
+      <button id="generate">試合生成（初期化）</button>
       <button id="joinPlayer">プレイヤー追加</button>
-      <button id="removePlayer">プレイヤー削除</button>
+      <div class="input-remove">
+        <input id="removeId" type="number" placeholder="削除する番号" min="1">
+        <button id="removePlayer" class="secondary">削除</button>
+      </div>
+      <button id="reset" class="secondary">リセット</button>
     </div>
-    <div id="log"></div>
+
+    <div id="log" aria-live="polite"></div>
   </div>
 
-  <div class="courts" id="courts"></div>
+  <div class="courts-wrap" id="courts"></div>
+
+  <h2>プレイヤー一覧</h2>
+  <div id="playersTable"></div>
 
 <script>
+/* ---------- データ構造 ---------- */
 class Player {
-  constructor(id) {
+  constructor(id){
     this.id = id;
     this.matches = 0;
     this.lastPlayed = -1;
@@ -51,98 +74,91 @@ class Player {
 }
 
 class Scheduler {
-  constructor(numPlayers, numCourts, mode) {
+  constructor(numPlayers, numCourts, mode){
     this.players = {};
-    for (let i = 1; i <= numPlayers; i++) {
-      this.players[i] = new Player(i);
-    }
+    for(let i=1;i<=numPlayers;i++) this.players[i] = new Player(i);
     this.numCourts = numCourts;
-    this.mode = mode; // "s" or "d"
-    this.courts = Array(numCourts).fill(null);
+    this.mode = mode;
+    this.courts = new Array(numCourts).fill(null);
     this.round = 0;
   }
 
-  availablePlayers() {
+  availablePlayers(){
     const busy = new Set();
-    for (let m of this.courts) {
-      if (!m) continue;
-      if (this.mode === "s") {
+    for(const m of this.courts){
+      if(!m) continue;
+      if(this.mode === 's'){
         busy.add(m[0].id); busy.add(m[1].id);
       } else {
-        for (let t of m) for (let p of t) busy.add(p.id);
+        for(const team of m) for(const p of team) busy.add(p.id);
       }
     }
     return Object.values(this.players).filter(p => !busy.has(p.id));
   }
 
-  pickSingles() {
-    let cand = this.availablePlayers();
-    if (cand.length < 2) return null;
-    cand.sort((a,b)=> a.matches-b.matches || a.lastPlayed-b.lastPlayed || a.id-b.id);
-    let p1 = cand[0];
-    cand = cand.slice(1);
-    cand.sort((a,b)=> a.matches-b.matches || a.lastPlayed-b.lastPlayed || a.id-b.id);
-    let p2 = cand[0];
-    return [p1,p2];
+  pickSingles(){
+    const cand = this.availablePlayers();
+    if(cand.length < 2) return null;
+    cand.sort((a,b) => a.matches - b.matches || a.lastPlayed - b.lastPlayed || a.id - b.id);
+    return [cand[0], cand[1]];
   }
 
-  pickDoubles() {
-    let cand = this.availablePlayers();
-    if (cand.length < 4) return null;
-    let pairs=[];
+  pickDoubles(){
+    const cand = this.availablePlayers();
+    if(cand.length < 4) return null;
+    const pairs = [];
     for(let i=0;i<cand.length;i++){
-      for(let j=i+1;j<cand.length;j++){
-        pairs.push([cand[i],cand[j]]);
+      for(let j=i+1;j<cand.length;j++) pairs.push([cand[i],cand[j]]);
+    }
+    pairs.sort((A,B) => (A[0].matches+A[1].matches) - (B[0].matches+B[1].matches));
+    for(const a of pairs){
+      for(const b of pairs){
+        const ids = new Set([a[0].id,a[1].id,b[0].id,b[1].id]);
+        if(ids.size === 4) return [a,b];
       }
     }
-    let team1=pairs[0], team2=null;
-    outer: for(let t1 of pairs){
-      for(let t2 of pairs){
-        let ids=new Set([t1[0].id,t1[1].id,t2[0].id,t2[1].id]);
-        if(ids.size===4){ team1=t1; team2=t2; break outer;}
-      }
-    }
-    return [team1,team2];
+    return null;
   }
 
   newMatch(cid){
     this.round++;
-    if(this.mode==="s"){
-      let match=this.pickSingles();
-      if(!match){ this.courts[cid]=null; return;}
-      for(let p of match){ p.matches++; p.lastPlayed=this.round; }
-      this.courts[cid]=match;
+    if(this.mode === 's'){
+      const match = this.pickSingles();
+      if(!match){ this.courts[cid] = null; return; }
+      match.forEach(p => { p.matches++; p.lastPlayed = this.round; });
+      this.courts[cid] = match;
     } else {
-      let match=this.pickDoubles();
-      if(!match){ this.courts[cid]=null; return;}
-      for(let team of match){ for(let p of team){ p.matches++; p.lastPlayed=this.round; } }
-      this.courts[cid]=match;
+      const match = this.pickDoubles();
+      if(!match){ this.courts[cid] = null; return; }
+      match.forEach(team => team.forEach(p => { p.matches++; p.lastPlayed = this.round; }));
+      this.courts[cid] = match;
     }
   }
 
-  finishMatch(cid){ this.courts[cid]=null; this.newMatch(cid); }
+  finishMatch(cid){
+    this.courts[cid] = null;
+    this.newMatch(cid);
+  }
 
   addPlayer(){
-    let ids = Object.keys(this.players).map(x=>+x).sort((a,b)=>a-b);
-    let newId=1;
-    for(let i=0;i<ids.length;i++){ if(ids[i]!==i+1){ newId=i+1; break; } }
-    if(newId===ids.length+1) newId=ids.length+1;
-    let minMatches= ids.length? Math.min(...ids.map(id=>this.players[id].matches)) : 0;
-    let p=new Player(newId);
-    p.matches=minMatches;
-    this.players[newId]=p;
-    return newId;
+    let id = 1;
+    while(this.players.hasOwnProperty(id)) id++;
+    const minMatches = Object.keys(this.players).length ? Math.min(...Object.values(this.players).map(p=>p.matches)) : 0;
+    const p = new Player(id);
+    p.matches = minMatches;
+    this.players[id] = p;
+    return id;
   }
 
   removePlayer(pid){
-    if(!(pid in this.players)) return false;
+    if(!this.players.hasOwnProperty(pid)) return false;
     for(let i=0;i<this.courts.length;i++){
-      let m=this.courts[i];
+      const m = this.courts[i];
       if(!m) continue;
-      if(this.mode==="s"){
-        if(m[0].id===pid || m[1].id===pid) this.courts[i]=null;
+      if(this.mode === 's'){
+        if(m[0].id === pid || m[1].id === pid) this.courts[i] = null;
       } else {
-        if(m[0][0].id===pid||m[0][1].id===pid||m[1][0].id===pid||m[1][1].id===pid) this.courts[i]=null;
+        if([m[0][0].id,m[0][1].id,m[1][0].id,m[1][1].id].includes(pid)) this.courts[i] = null;
       }
     }
     delete this.players[pid];
@@ -150,62 +166,121 @@ class Scheduler {
   }
 }
 
-let sched=null;
+/* ---------- UI / 操作 ---------- */
+let sched = null;
+const el = id => document.getElementById(id);
 
-function renderCourts(){
-  const div=document.getElementById("courts");
-  div.innerHTML="";
-  for(let i=0;i<sched.numCourts;i++){
-    const c=document.createElement("div");
-    c.className="court";
-    c.innerHTML=`<h3>コート${i+1}</h3>`;
-    let m=sched.courts[i];
-    if(!m){ c.innerHTML+=`<p>空き</p>`; }
-    else if(sched.mode==="s"){ c.innerHTML+=`<p>${m[0].id} vs ${m[1].id}</p>`; }
-    else { c.innerHTML+=`<p>(${m[0][0].id},${m[0][1].id}) vs (${m[1][0].id},${m[1][1].id})</p>`; }
-    c.onclick=()=>{ sched.finishMatch(i); renderCourts(); };
-    div.appendChild(c);
+function showLog(msg, ms=4000){
+  const L = el('log');
+  L.textContent = msg;
+  if(ms>0){
+    clearTimeout(L._t);
+    L._t = setTimeout(()=>{ L.textContent = ''; }, ms);
   }
 }
 
-// イベント
-document.getElementById("numPlayers").oninput=function(){ document.getElementById("numPlayersVal").textContent=this.value; };
-document.getElementById("numCourts").oninput=function(){ document.getElementById("numCourtsVal").textContent=this.value; };
-
-document.getElementById("generate").onclick=function(){
-  const numPlayers=+document.getElementById("numPlayers").value;
-  const numCourts=+document.getElementById("numCourts").value;
-  const mode=document.querySelector("input[name=mode]:checked").value;
-  sched=new Scheduler(numPlayers,numCourts,mode);
-  for(let c=0;c<numCourts;c++) sched.newMatch(c);
-  renderCourts();
-};
-
-document.getElementById("joinPlayer").onclick=function(){
+function renderCourts(){
+  const wrap = el('courts');
+  wrap.innerHTML = '';
   if(!sched) return;
-  const newId=sched.addPlayer();
-  document.getElementById("numPlayers").value=Object.keys(sched.players).length;
-  document.getElementById("numPlayersVal").textContent=Object.keys(sched.players).length;
-  for(let c=0;c<sched.numCourts;c++){ if(!sched.courts[c]) sched.newMatch(c); }
-  renderCourts();
-  document.getElementById("log").textContent=`新しく ${newId} 番のプレイヤーが追加されました`;
-};
+  for(let i=0;i<sched.numCourts;i++){
+    const card = document.createElement('div');
+    card.className = 'court';
+    card.setAttribute('data-cid', i);
+    const title = document.createElement('h3');
+    title.textContent = `コート ${i+1}`;
+    const body = document.createElement('p');
 
-document.getElementById("removePlayer").onclick=function(){
-  if(!sched) return;
-  let pid=prompt("削除するプレイヤー番号を入力してください:");
-  if(!pid) return;
-  pid=+pid;
-  if(sched.removePlayer(pid)){
-    document.getElementById("numPlayers").value=Object.keys(sched.players).length;
-    document.getElementById("numPlayersVal").textContent=Object.keys(sched.players).length;
-    for(let c=0;c<sched.numCourts;c++){ if(!sched.courts[c]) sched.newMatch(c); }
-    renderCourts();
-    document.getElementById("log").textContent=`プレイヤー ${pid} を削除しました`;
-  } else {
-    document.getElementById("log").textContent=`プレイヤー ${pid} は存在しません`;
+    const m = sched.courts[i];
+    if(!m){
+      body.textContent = '空き';
+    } else if(sched.mode === 's'){
+      body.textContent = `${m[0].id} vs ${m[1].id}`;
+    } else {
+      body.textContent = `(${m[0][0].id},${m[0][1].id}) vs (${m[1][0].id},${m[1][1].id})`;
+    }
+
+    card.appendChild(title);
+    card.appendChild(body);
+    card.addEventListener('click', ()=>{
+      if(!sched) return;
+      sched.finishMatch(i);
+      renderCourts();
+      renderPlayers();
+    });
+    wrap.appendChild(card);
   }
-};
+}
+
+function renderPlayers(){
+  if(!sched){ el('playersTable').innerHTML=''; return; }
+  const ids = Object.keys(sched.players).map(n=>parseInt(n));
+  const maxId = ids.length ? Math.max(...ids) : 0;
+  let html = '<table><tr><th>番号</th><th>状態</th><th>試合数</th></tr>';
+  for(let i=1;i<=maxId+2;i++){
+    if(sched.players[i]){
+      html += `<tr><td>${i}</td><td>在籍</td><td>${sched.players[i].matches}</td></tr>`;
+    } else {
+      html += `<tr><td>${i}</td><td>空席</td><td>-</td></tr>`;
+    }
+  }
+  html += '</table>';
+  el('playersTable').innerHTML = html;
+}
+
+/* ---------- イベント設定 ---------- */
+el('numPlayers').addEventListener('input', function(){
+  el('numPlayersVal').textContent = this.value;
+});
+el('numCourts').addEventListener('input', function(){
+  el('numCourtsVal').textContent = this.value;
+});
+
+el('generate').addEventListener('click', ()=>{
+  const np = parseInt(el('numPlayers').value,10);
+  const nc = parseInt(el('numCourts').value,10);
+  const mode = document.querySelector('input[name="mode"]:checked').value;
+  sched = new Scheduler(np, nc, mode);
+  for(let i=0;i<sched.numCourts;i++) sched.newMatch(i);
+  el('numPlayers').value = Object.keys(sched.players).length;
+  el('numPlayersVal').textContent = Object.keys(sched.players).length;
+  renderCourts();
+  renderPlayers();
+  showLog('スケジューラを生成しました。');
+});
+
+el('joinPlayer').addEventListener('click', ()=>{
+  if(!sched){ el('generate').click(); }
+  const newId = sched.addPlayer();
+  for(let i=0;i<sched.numCourts;i++) if(!sched.courts[i]) sched.newMatch(i);
+  el('numPlayers').value = Object.keys(sched.players).length;
+  el('numPlayersVal').textContent = Object.keys(sched.players).length;
+  renderCourts();
+  renderPlayers();
+  showLog(`新しく ${newId} 番のプレイヤーが追加されました`);
+});
+
+el('removePlayer').addEventListener('click', ()=>{
+  if(!sched){ showLog('先に「試合生成」を押してください'); return; }
+  const ip = parseInt(el('removeId').value,10);
+  if(!ip || ip <= 0){ showLog('削除する番号を正しく入力してください'); return; }
+  const ok = sched.removePlayer(ip);
+  if(!ok){ showLog(`プレイヤー ${ip} は存在しません`); return; }
+  for(let i=0;i<sched.numCourts;i++) if(!sched.courts[i]) sched.newMatch(i);
+  el('numPlayers').value = Object.keys(sched.players).length;
+  el('numPlayersVal').textContent = Object.keys(sched.players).length;
+  renderCourts();
+  renderPlayers();
+  showLog(`プレイヤー ${ip} を削除しました`);
+});
+
+el('reset').addEventListener('click', ()=>{
+  sched = null;
+  el('courts').innerHTML = '';
+  el('playersTable').innerHTML = '';
+  el('log').textContent = '';
+  showLog('リセットしました',2000);
+});
 </script>
 </body>
 </html>
