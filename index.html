@@ -1,286 +1,234 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-  <meta charset="utf-8" />
-  <title>Badminton Match Scheduler (改良版)</title>
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta charset="UTF-8">
+  <title>バドミントン試合管理</title>
   <style>
-    :root{--bg:#f5f7fb;--card:#ffffff;--accent:#2b8cff;--muted:#666;}
-    body{font-family:system-ui,-apple-system,Segoe UI,Roboto,"Hiragino Kaku Gothic ProN",Meiryo,Arial;margin:0;padding:20px;background:var(--bg);color:#222}
-    h1{margin:0 0 12px;font-size:20px}
-    .controls{background:var(--card);padding:14px;border-radius:12px;box-shadow:0 4px 12px rgba(15,30,60,0.06);display:inline-block;width:100%;max-width:900px}
-    .row{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:8px}
-    label{font-size:14px;color:var(--muted)}
-    input[type=range]{width:180px}
-    .buttons{display:flex;gap:8px;flex-wrap:wrap}
-    button{background:var(--accent);color:#fff;border:none;padding:8px 12px;border-radius:8px;cursor:pointer}
-    button.secondary{background:#eee;color:#222}
-    .courts-wrap{margin-top:18px;display:flex;flex-wrap:wrap;gap:14px}
-    .court{width:200px;height:120px;background:var(--card);border-radius:12px;box-shadow:0 6px 18px rgba(20,30,60,0.06);display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;transition:transform .08s, box-shadow .08s}
-    .court:hover{transform:translateY(-4px);box-shadow:0 10px 24px rgba(20,30,60,0.08)}
-    .court h3{margin:0;font-size:16px}
-    .court p{margin:6px 0 0;font-weight:600}
-    #log{margin-top:12px;min-height:20px;color:#1b7a35;font-weight:600}
-    .input-remove{display:inline-flex;align-items:center;gap:6px}
-    input[type=number]{width:84px;padding:6px;border-radius:8px;border:1px solid #ddd}
-    table{margin-top:20px;border-collapse:collapse;width:100%;max-width:600px;background:var(--card);box-shadow:0 4px 10px rgba(0,0,0,0.05);border-radius:8px;overflow:hidden}
-    th,td{border:1px solid #ddd;padding:6px 10px;text-align:center}
-    th{background:#f0f4ff}
-    @media(max-width:640px){ .court{width:48%;} }
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+      background: #f0f4f8;
+    }
+    h1, h2 { text-align: center; }
+    .controls {
+      margin-bottom: 20px;
+      padding: 15px;
+      background: #fff;
+      border-radius: 10px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+    }
+    .controls label {
+      display: block;
+      margin: 10px 0 5px;
+    }
+    .court-container {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 15px;
+      justify-content: center;
+    }
+    .court {
+      background: #fff;
+      border-radius: 10px;
+      padding: 15px;
+      width: 200px;
+      cursor: pointer;
+      text-align: center;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+      transition: transform 0.2s;
+    }
+    .court:hover { transform: scale(1.05); }
+    .table-container {
+      margin-top: 20px;
+      background: #fff;
+      padding: 15px;
+      border-radius: 10px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: center;
+    }
+    th, td {
+      border: 1px solid #ccc;
+      padding: 8px;
+    }
+    th { background: #eee; }
+    .message {
+      margin-top: 10px;
+      text-align: center;
+      font-weight: bold;
+      color: #0077cc;
+    }
   </style>
 </head>
 <body>
-  <h1>バドミントン試合スケジューラー（改良版）</h1>
+  <h1>🏸 バドミントン試合管理システム</h1>
 
   <div class="controls">
-    <div class="row">
-      <label>人数: <strong id="numPlayersVal">4</strong></label>
-      <input id="numPlayers" type="range" min="2" max="50" value="4">
-      <label style="margin-left:18px">コート数: <strong id="numCourtsVal">2</strong></label>
-      <input id="numCourts" type="range" min="1" max="12" value="2">
-    </div>
+    <label>人数: <span id="playerCountLabel">4</span></label>
+    <input type="range" id="playerCount" min="2" max="20" value="4">
+    
+    <label>コート数: <span id="courtCountLabel">2</span></label>
+    <input type="range" id="courtCount" min="1" max="10" value="2">
 
-    <div class="row">
-      <label><input type="radio" name="mode" value="s" checked> シングルス</label>
-      <label><input type="radio" name="mode" value="d"> ダブルス</label>
-    </div>
+    <label>試合形式:</label>
+    <select id="matchType">
+      <option value="singles">シングルス</option>
+      <option value="doubles">ダブルス</option>
+    </select>
 
-    <div class="row buttons">
-      <button id="generate">試合生成（初期化）</button>
-      <button id="joinPlayer">プレイヤー追加</button>
-      <div class="input-remove">
-        <input id="removeId" type="number" placeholder="削除する番号" min="1">
-        <button id="removePlayer" class="secondary">削除</button>
-      </div>
-      <button id="reset" class="secondary">リセット</button>
-    </div>
-
-    <div id="log" aria-live="polite"></div>
+    <button id="generate">試合生成</button>
+    <button id="addPlayer">プレイヤー追加</button>
+    <button id="removePlayer">プレイヤー削除</button>
   </div>
 
-  <div class="courts-wrap" id="courts"></div>
+  <h2>コート一覧</h2>
+  <div class="court-container" id="courts"></div>
 
-  <h2>プレイヤー一覧</h2>
-  <div id="playersTable"></div>
+  <div class="table-container">
+    <h2>プレイヤー番号表</h2>
+    <table id="playerTable">
+      <thead>
+        <tr><th>番号</th><th>状態</th></tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
 
-<script>
-/* ---------- データ構造 ---------- */
-class Player {
-  constructor(id){
-    this.id = id;
-    this.matches = 0;
-    this.lastPlayed = -1;
-  }
-}
+  <div class="message" id="message"></div>
 
-class Scheduler {
-  constructor(numPlayers, numCourts, mode){
-    this.players = {};
-    for(let i=1;i<=numPlayers;i++) this.players[i] = new Player(i);
-    this.numCourts = numCourts;
-    this.mode = mode;
-    this.courts = new Array(numCourts).fill(null);
-    this.round = 0;
-  }
+  <script>
+    let players = [];
+    let matches = [];
+    let courts = [];
+    let currentMatchIndex = [];
 
-  availablePlayers(){
-    const busy = new Set();
-    for(const m of this.courts){
-      if(!m) continue;
-      if(this.mode === 's'){
-        busy.add(m[0].id); busy.add(m[1].id);
-      } else {
-        for(const team of m) for(const p of team) busy.add(p.id);
+    const playerCountInput = document.getElementById("playerCount");
+    const courtCountInput = document.getElementById("courtCount");
+    const matchTypeInput = document.getElementById("matchType");
+    const courtsDiv = document.getElementById("courts");
+    const messageDiv = document.getElementById("message");
+    const playerTableBody = document.querySelector("#playerTable tbody");
+
+    function updateLabels() {
+      document.getElementById("playerCountLabel").innerText = playerCountInput.value;
+      document.getElementById("courtCountLabel").innerText = courtCountInput.value;
+    }
+
+    function updatePlayerTable() {
+      playerTableBody.innerHTML = "";
+      let maxNumber = Math.max(...players.map(p => p.id), playerCountInput.value);
+      for (let i = 1; i <= maxNumber; i++) {
+        let row = document.createElement("tr");
+        let player = players.find(p => p.id === i);
+        row.innerHTML = `<td>${i}</td><td>${player ? "参加中" : "空席"}</td>`;
+        playerTableBody.appendChild(row);
       }
     }
-    return Object.values(this.players).filter(p => !busy.has(p.id));
-  }
 
-  pickSingles(){
-    const cand = this.availablePlayers();
-    if(cand.length < 2) return null;
-    cand.sort((a,b) => a.matches - b.matches || a.lastPlayed - b.lastPlayed || a.id - b.id);
-    return [cand[0], cand[1]];
-  }
-
-  pickDoubles(){
-    const cand = this.availablePlayers();
-    if(cand.length < 4) return null;
-    const pairs = [];
-    for(let i=0;i<cand.length;i++){
-      for(let j=i+1;j<cand.length;j++) pairs.push([cand[i],cand[j]]);
+    function generatePlayers() {
+      let n = parseInt(playerCountInput.value);
+      let existingIds = players.map(p => p.id);
+      players = [];
+      for (let i = 1; i <= n; i++) {
+        players.push({id: i});
+      }
+      updatePlayerTable();
     }
-    pairs.sort((A,B) => (A[0].matches+A[1].matches) - (B[0].matches+B[1].matches));
-    for(const a of pairs){
-      for(const b of pairs){
-        const ids = new Set([a[0].id,a[1].id,b[0].id,b[1].id]);
-        if(ids.size === 4) return [a,b];
+
+    function generateMatches() {
+      let type = matchTypeInput.value;
+      let groupSize = (type === "singles") ? 2 : 4;
+      let shuffled = [...players].sort(() => Math.random() - 0.5);
+      matches = [];
+      for (let i = 0; i < shuffled.length; i += groupSize) {
+        if (i + groupSize <= shuffled.length) {
+          matches.push(shuffled.slice(i, i + groupSize));
+        }
       }
     }
-    return null;
-  }
 
-  newMatch(cid){
-    this.round++;
-    if(this.mode === 's'){
-      const match = this.pickSingles();
-      if(!match){ this.courts[cid] = null; return; }
-      match.forEach(p => { p.matches++; p.lastPlayed = this.round; });
-      this.courts[cid] = match;
-    } else {
-      const match = this.pickDoubles();
-      if(!match){ this.courts[cid] = null; return; }
-      match.forEach(team => team.forEach(p => { p.matches++; p.lastPlayed = this.round; }));
-      this.courts[cid] = match;
-    }
-  }
-
-  finishMatch(cid){
-    this.courts[cid] = null;
-    this.newMatch(cid);
-  }
-
-  addPlayer(){
-    let id = 1;
-    while(this.players.hasOwnProperty(id)) id++;
-    const minMatches = Object.keys(this.players).length ? Math.min(...Object.values(this.players).map(p=>p.matches)) : 0;
-    const p = new Player(id);
-    p.matches = minMatches;
-    this.players[id] = p;
-    return id;
-  }
-
-  removePlayer(pid){
-    if(!this.players.hasOwnProperty(pid)) return false;
-    for(let i=0;i<this.courts.length;i++){
-      const m = this.courts[i];
-      if(!m) continue;
-      if(this.mode === 's'){
-        if(m[0].id === pid || m[1].id === pid) this.courts[i] = null;
-      } else {
-        if([m[0][0].id,m[0][1].id,m[1][0].id,m[1][1].id].includes(pid)) this.courts[i] = null;
-      }
-    }
-    delete this.players[pid];
-    return true;
-  }
-}
-
-/* ---------- UI / 操作 ---------- */
-let sched = null;
-const el = id => document.getElementById(id);
-
-function showLog(msg, ms=4000){
-  const L = el('log');
-  L.textContent = msg;
-  if(ms>0){
-    clearTimeout(L._t);
-    L._t = setTimeout(()=>{ L.textContent = ''; }, ms);
-  }
-}
-
-function renderCourts(){
-  const wrap = el('courts');
-  wrap.innerHTML = '';
-  if(!sched) return;
-  for(let i=0;i<sched.numCourts;i++){
-    const card = document.createElement('div');
-    card.className = 'court';
-    card.setAttribute('data-cid', i);
-    const title = document.createElement('h3');
-    title.textContent = `コート ${i+1}`;
-    const body = document.createElement('p');
-
-    const m = sched.courts[i];
-    if(!m){
-      body.textContent = '空き';
-    } else if(sched.mode === 's'){
-      body.textContent = `${m[0].id} vs ${m[1].id}`;
-    } else {
-      body.textContent = `(${m[0][0].id},${m[0][1].id}) vs (${m[1][0].id},${m[1][1].id})`;
-    }
-
-    card.appendChild(title);
-    card.appendChild(body);
-    card.addEventListener('click', ()=>{
-      if(!sched) return;
-      sched.finishMatch(i);
+    function generateCourts() {
+      let c = parseInt(courtCountInput.value);
+      courts = Array.from({length: c}, (_, i) => i);
+      currentMatchIndex = new Array(c).fill(0);
       renderCourts();
-      renderPlayers();
-    });
-    wrap.appendChild(card);
-  }
-}
-
-function renderPlayers(){
-  if(!sched){ el('playersTable').innerHTML=''; return; }
-  const ids = Object.keys(sched.players).map(n=>parseInt(n));
-  const maxId = ids.length ? Math.max(...ids) : 0;
-  let html = '<table><tr><th>番号</th><th>状態</th><th>試合数</th></tr>';
-  for(let i=1;i<=maxId+2;i++){
-    if(sched.players[i]){
-      html += `<tr><td>${i}</td><td>在籍</td><td>${sched.players[i].matches}</td></tr>`;
-    } else {
-      html += `<tr><td>${i}</td><td>空席</td><td>-</td></tr>`;
     }
-  }
-  html += '</table>';
-  el('playersTable').innerHTML = html;
-}
 
-/* ---------- イベント設定 ---------- */
-el('numPlayers').addEventListener('input', function(){
-  el('numPlayersVal').textContent = this.value;
-});
-el('numCourts').addEventListener('input', function(){
-  el('numCourtsVal').textContent = this.value;
-});
+    function renderCourts() {
+      courtsDiv.innerHTML = "";
+      courts.forEach((court, index) => {
+        let match = matches[currentMatchIndex[index]];
+        let div = document.createElement("div");
+        div.className = "court";
+        div.onclick = () => nextMatch(index);
+        div.innerHTML = `
+          <h3>コート ${index+1}</h3>
+          <p>${match ? match.map(p => "プレイヤー"+p.id).join(" vs ") : "試合なし"}</p>
+        `;
+        courtsDiv.appendChild(div);
+      });
+    }
 
-el('generate').addEventListener('click', ()=>{
-  const np = parseInt(el('numPlayers').value,10);
-  const nc = parseInt(el('numCourts').value,10);
-  const mode = document.querySelector('input[name="mode"]:checked').value;
-  sched = new Scheduler(np, nc, mode);
-  for(let i=0;i<sched.numCourts;i++) sched.newMatch(i);
-  el('numPlayers').value = Object.keys(sched.players).length;
-  el('numPlayersVal').textContent = Object.keys(sched.players).length;
-  renderCourts();
-  renderPlayers();
-  showLog('スケジューラを生成しました。');
-});
+    function nextMatch(courtIndex) {
+      if (currentMatchIndex[courtIndex] < matches.length - 1) {
+        currentMatchIndex[courtIndex]++;
+      } else {
+        currentMatchIndex[courtIndex] = 0;
+      }
+      renderCourts();
+    }
 
-el('joinPlayer').addEventListener('click', ()=>{
-  if(!sched){ el('generate').click(); }
-  const newId = sched.addPlayer();
-  for(let i=0;i<sched.numCourts;i++) if(!sched.courts[i]) sched.newMatch(i);
-  el('numPlayers').value = Object.keys(sched.players).length;
-  el('numPlayersVal').textContent = Object.keys(sched.players).length;
-  renderCourts();
-  renderPlayers();
-  showLog(`新しく ${newId} 番のプレイヤーが追加されました`);
-});
+    function addPlayer() {
+      // 空席を探す
+      let maxNumber = Math.max(...players.map(p => p.id), playerCountInput.value);
+      let empty = [];
+      for (let i = 1; i <= maxNumber; i++) {
+        if (!players.find(p => p.id === i)) empty.push(i);
+      }
 
-el('removePlayer').addEventListener('click', ()=>{
-  if(!sched){ showLog('先に「試合生成」を押してください'); return; }
-  const ip = parseInt(el('removeId').value,10);
-  if(!ip || ip <= 0){ showLog('削除する番号を正しく入力してください'); return; }
-  const ok = sched.removePlayer(ip);
-  if(!ok){ showLog(`プレイヤー ${ip} は存在しません`); return; }
-  for(let i=0;i<sched.numCourts;i++) if(!sched.courts[i]) sched.newMatch(i);
-  el('numPlayers').value = Object.keys(sched.players).length;
-  el('numPlayersVal').textContent = Object.keys(sched.players).length;
-  renderCourts();
-  renderPlayers();
-  showLog(`プレイヤー ${ip} を削除しました`);
-});
+      let newId;
+      if (empty.length > 0) {
+        newId = empty[0];
+      } else {
+        newId = maxNumber + 1;
+        playerCountInput.value = newId;
+      }
+      players.push({id: newId});
+      updatePlayerTable();
+      messageDiv.innerText = `新しく ${newId} 番のプレイヤーが追加されました`;
+    }
 
-el('reset').addEventListener('click', ()=>{
-  sched = null;
-  el('courts').innerHTML = '';
-  el('playersTable').innerHTML = '';
-  el('log').textContent = '';
-  showLog('リセットしました',2000);
-});
-</script>
+    function removePlayer() {
+      let id = parseInt(prompt("削除するプレイヤー番号を入力してください:"));
+      if (isNaN(id)) return;
+      let index = players.findIndex(p => p.id === id);
+      if (index !== -1) {
+        players.splice(index, 1);
+        updatePlayerTable();
+        messageDiv.innerText = `${id} 番のプレイヤーが削除されました`;
+      } else {
+        messageDiv.innerText = `${id} 番のプレイヤーは存在しません`;
+      }
+    }
+
+    document.getElementById("generate").onclick = () => {
+      generatePlayers();
+      generateMatches();
+      generateCourts();
+    };
+    document.getElementById("addPlayer").onclick = addPlayer;
+    document.getElementById("removePlayer").onclick = removePlayer;
+
+    playerCountInput.oninput = () => { updateLabels(); generatePlayers(); };
+    courtCountInput.oninput = () => { updateLabels(); generateCourts(); };
+
+    updateLabels();
+    generatePlayers();
+    generateMatches();
+    generateCourts();
+  </script>
 </body>
 </html>
