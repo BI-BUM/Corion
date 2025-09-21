@@ -26,9 +26,11 @@
       margin: 10px 0 5px;
     }
     .controls input[type="range"] {
+      width: 100%;        /* 親要素幅いっぱいに */
+      max-width: 400px;   /* 任意で最大幅を制限 */
+      height: 20px;       /* バーの高さ */
+      margin: 10px auto;  /* 上下余白、左右中央 */
       display: block;
-      transform: scale(3);
-      margin: 10px 0;
     }
     .court-container {
       display: flex;
