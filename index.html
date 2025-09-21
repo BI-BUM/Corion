@@ -2,241 +2,229 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<title>バドミントン試合管理システム</title>
+<title>バドミントン試合管理</title>
 <style>
-body { font-family: Arial,sans-serif; margin:20px; background:#f0f4f8; }
-h1,h2{text-align:center;}
-.controls{margin-bottom:20px;padding:15px;background:#fff;border-radius:10px;box-shadow:0 2px 6px rgba(0,0,0,0.1);}
-.controls label{display:block;margin:10px 0 5px;}
-.controls button,.controls select,.controls input[type=range]{font-size:1.2em;padding:5px 10px;margin:5px;border-radius:10px;}
-.court-container{display:flex;flex-wrap:wrap;gap:15px;justify-content:center;}
-.court{background:#fff;border-radius:10px;padding:20px;width:220px;cursor:pointer;text-align:center;box-shadow:0 2px 6px rgba(0,0,0,0.1);transition:transform 0.2s;font-size:1.1em;}
-.court:hover{transform:scale(1.05);}
-.table-container{margin-top:20px;background:#fff;padding:15px;border-radius:10px;box-shadow:0 2px 6px rgba(0,0,0,0.1);}
-table{width:100%;border-collapse:collapse;text-align:center;}
-th,td{border:1px solid #ccc;padding:6px;}
-th{background:#eee;}
-.message{margin-top:10px;text-align:center;font-weight:bold;color:#0077cc;}
+body { font-family: Arial, sans-serif; margin: 20px; background: #f0f4f8; }
+h1, h2 { text-align: center; }
+.controls { margin-bottom: 20px; padding: 15px; background: #fff; border-radius: 10px; box-shadow: 0 2px 6px rgba(0,0,0,0.1); }
+.controls label { display: block; margin: 10px 0 5px; }
+.court-container { display: flex; flex-wrap: wrap; gap: 15px; justify-content: center; }
+.court { background: #fff; border-radius: 10px; padding: 15px; width: 200px; cursor: pointer; text-align: center; box-shadow: 0 2px 6px rgba(0,0,0,0.1); transition: transform 0.2s; }
+.court:hover { transform: scale(1.05); }
+.table-container { margin-top: 20px; background: #fff; padding: 15px; border-radius: 10px; box-shadow: 0 2px 6px rgba(0,0,0,0.1); }
+table { width: 100%; border-collapse: collapse; text-align: center; }
+th, td { border: 1px solid #ccc; padding: 8px; }
+th { background: #eee; }
+.message { margin-top: 10px; text-align: center; font-weight: bold; color: #0077cc; }
 </style>
 </head>
 <body>
 <h1>🏸 バドミントン試合管理システム</h1>
 
 <div class="controls">
-  <label>人数: <span id="playerCountLabel">4</span></label>
-  <input type="range" id="playerCount" min="2" max="20" value="4">
-
-  <label>コート数: <span id="courtCountLabel">2</span></label>
-  <input type="range" id="courtCount" min="1" max="10" value="2">
-
-  <label>試合形式:</label>
-  <select id="matchType">
-    <option value="singles">シングルス</option>
-    <option value="doubles">ダブルス</option>
-  </select>
-
-  <button id="generate">試合生成</button>
-  <button id="addPlayer">プレイヤー追加</button>
-  <button id="removePlayer">プレイヤー削除</button>
+<label>人数: <span id="playerCountLabel">4</span></label>
+<input type="range" id="playerCount" min="2" max="20" value="4">
+<label>コート数: <span id="courtCountLabel">2</span></label>
+<input type="range" id="courtCount" min="1" max="10" value="2">
+<label>試合形式:</label>
+<select id="matchType">
+<option value="singles">シングルス</option>
+<option value="doubles">ダブルス</option>
+</select>
+<button id="generate">試合生成</button>
+<button id="addPlayer">プレイヤー追加</button>
+<button id="removePlayer">プレイヤー削除</button>
 </div>
 
 <h2>コート一覧</h2>
 <div class="court-container" id="courts"></div>
 
 <div class="table-container">
-  <h2>プレイヤー番号表</h2>
-  <table id="playerTable">
-    <thead><tr><th>番号</th><th>状態</th></tr></thead>
-    <tbody></tbody>
-  </table>
+<h2>プレイヤー番号表</h2>
+<table id="playerTable">
+<thead>
+<tr><th>番号</th><th>状態</th></tr>
+</thead>
+<tbody></tbody>
+</table>
 </div>
 
 <div class="message" id="message"></div>
 
 <script>
-class Player{
-  constructor(id){
-    this.id=id;
-    this.matches=0;
-    this.lastPlayed=-1;
-  }
+let players = [];
+let matches = [];
+let courts = [];
+let currentMatchIndex = [];
+
+const playerCountInput = document.getElementById("playerCount");
+const courtCountInput = document.getElementById("courtCount");
+const matchTypeInput = document.getElementById("matchType");
+const courtsDiv = document.getElementById("courts");
+const messageDiv = document.getElementById("message");
+const playerTableBody = document.querySelector("#playerTable tbody");
+
+let vsCount = {};  // 対戦回数
+let pairCount = {}; // ペア回数
+let lastPairs = {}; // 直前ペア
+
+function updateLabels() {
+  document.getElementById("playerCountLabel").innerText = playerCountInput.value;
+  document.getElementById("courtCountLabel").innerText = courtCountInput.value;
 }
 
-let players=[], courts=[], mode="singles";
-let vsCount={}, pairCount={};
-let playerCountInput=document.getElementById("playerCount");
-let courtCountInput=document.getElementById("courtCount");
-let matchTypeInput=document.getElementById("matchType");
-let courtsDiv=document.getElementById("courts");
-let messageDiv=document.getElementById("message");
-let playerTableBody=document.querySelector("#playerTable tbody");
-
-function updateLabels(){
-  document.getElementById("playerCountLabel").innerText=playerCountInput.value;
-  document.getElementById("courtCountLabel").innerText=courtCountInput.value;
-}
-
-function updatePlayerTable(){
-  playerTableBody.innerHTML="";
-  let maxNumber=Math.max(...players.map(p=>p.id), playerCountInput.value);
-  for(let i=1;i<=maxNumber;i++){
-    let row=document.createElement("tr");
-    let p=players.find(x=>x.id===i);
-    row.innerHTML=`<td>${i}</td><td>${p?"参加中":"空席"}</td>`;
+function updatePlayerTable() {
+  playerTableBody.innerHTML = "";
+  let maxNumber = Math.max(...players.map(p => p.id), playerCountInput.value);
+  for (let i = 1; i <= maxNumber; i++) {
+    let row = document.createElement("tr");
+    let player = players.find(p => p.id === i);
+    row.innerHTML = `<td>${i}</td><td>${player ? "参加中" : "空席"}</td>`;
     playerTableBody.appendChild(row);
   }
 }
 
-function availablePlayers(){
-  let busy=[];
-  courts.forEach(m=>{
-    if(!m)return;
-    if(mode==="singles") busy.push(m[0].id,m[1].id);
-    else busy.push(m[0][0].id,m[0][1].id,m[1][0].id,m[1][1].id);
+function generatePlayers() {
+  let n = parseInt(playerCountInput.value);
+  let existingIds = players.map(p => p.id);
+  players = [];
+  for (let i = 1; i <= n; i++) {
+    players.push({id: i, matches:0, lastPlayed:0});
+  }
+  vsCount = {};
+  pairCount = {};
+  lastPairs = {};
+  updatePlayerTable();
+}
+
+function isPlaying(pid) {
+  return courts.some((match,i) => {
+    if (!match) return false;
+    return match.flat(Infinity).some(p => p.id===pid);
   });
-  return players.filter(p=>!busy.includes(p.id));
+}
+
+function vsCountWith(pid1, pid2){
+  return vsCount[[pid1,pid2].sort().join(',')]||0;
+}
+
+function pairCountWith(pid1,pid2){
+  return pairCount[[pid1,pid2].sort().join(',')]||0;
+}
+
+function wasPairLastMatch(pid1,pid2){
+  return lastPairs[[pid1,pid2].sort().join(',')];
+}
+
+function removeFromAvailable(arr, p){
+  let idx = arr.findIndex(x=>x.id===p.id);
+  if(idx!==-1) arr.splice(idx,1);
 }
 
 function pickSingles(){
-  let cand=availablePlayers();
-  if(cand.length<2) return null;
-  cand.sort((a,b)=>a.matches-b.matches || a.lastPlayed-b.lastPlayed || a.id-b.id);
-  let p1=cand[0]; let rest=cand.slice(1);
-  rest.sort((p,b)=>{
-    let key=[p1.id,p.id].sort((x,y)=>x-y).join(",");
-    let keyB=[p1.id,b.id].sort((x,y)=>x-y).join(",");
-    return (vsCount[key]||0)-(vsCount[keyB]||0) || p.matches-b.matches || p.lastPlayed-b.lastPlayed || p.id-b.id;
-  });
-  let p2=rest[0];
+  let available = players.filter(p=>!isPlaying(p.id));
+  if(available.length<2) return null;
+  available.sort((a,b)=>a.matches - b.matches || a.lastPlayed - b.lastPlayed || a.id - b.id);
+  const p1 = available.shift();
+  available.sort((a,b)=>vsCountWith(p1.id,a.id) - vsCountWith(p1.id,b.id) || a.matches - b.matches || a.lastPlayed - b.lastPlayed || a.id - b.id);
+  const p2 = available[0];
   return [p1,p2];
 }
 
 function pickDoubles(){
-  let cand=availablePlayers();
-  if(cand.length<4) return null;
-  let pairs=[];
-  for(let i=0;i<cand.length;i++){
-    for(let j=i+1;j<cand.length;j++){
-      pairs.push([cand[i],cand[j]]);
-    }
-  }
-  pairs.sort((a,b)=>{
-    let keyA=[a[0].id,a[1].id].sort((x,y)=>x-y).join(",");
-    let keyB=[b[0].id,b[1].id].sort((x,y)=>x-y).join(",");
-    return (pairCount[keyA]||0)-(pairCount[keyB]||0)
-      || (a[0].matches+a[1].matches)-(b[0].matches+b[1].matches)
-      || (a[0].lastPlayed+a[1].lastPlayed)-(b[0].lastPlayed+b[1].lastPlayed)
-      || a[0].id-b[0].id;
+  let available = players.filter(p=>!isPlaying(p.id));
+  if(available.length<4) return null;
+  available.sort((a,b)=>a.matches - b.matches || a.lastPlayed - b.lastPlayed || a.id - b.id);
+  const p1 = available.shift();
+  let candidates2 = available.filter(p=>!wasPairLastMatch(p1.id,p.id));
+  candidates2.sort((a,b)=>pairCountWith(p1.id,a.id) - pairCountWith(p1.id,b.id) || a.matches - b.matches || a.lastPlayed - b.lastPlayed || a.id - b.id);
+  const p2 = candidates2[0]; removeFromAvailable(available,p2);
+
+  available.sort((a,b)=>{
+    let vsA = vsCountWith(p1.id,a.id)+vsCountWith(p2.id,a.id);
+    let vsB = vsCountWith(p1.id,b.id)+vsCountWith(p2.id,b.id);
+    return vsA - vsB || a.matches - b.matches || a.lastPlayed - b.lastPlayed || a.id - b.id;
   });
-  for(let i=0;i<pairs.length;i++){
-    for(let j=i+1;j<pairs.length;j++){
-      let ids=new Set([pairs[i][0].id,pairs[i][1].id,pairs[j][0].id,pairs[j][1].id]);
-      if(ids.size===4) return [pairs[i],pairs[j]];
-    }
-  }
-  return null;
+  const p3 = available.shift();
+
+  let candidates4 = available.filter(p=>!wasPairLastMatch(p3.id,p.id));
+  candidates4.sort((a,b)=>pairCountWith(p3.id,a.id) - pairCountWith(p3.id,b.id) || a.matches - b.matches || a.lastPlayed - b.lastPlayed || a.id - b.id);
+  const p4 = candidates4[0]; removeFromAvailable(available,p4);
+
+  return [[p1,p2],[p3,p4]];
 }
 
-function newMatch(cidx){
-  if(mode==="singles"){
-    let match=pickSingles();
-    if(!match){courts[cidx]=null; renderCourts(); return;}
-    let [p1,p2]=match;
-    p1.matches++; p2.matches++; p1.lastPlayed=p2.lastPlayed=Date.now();
-    let key=[p1.id,p2.id].sort((a,b)=>a-b).join(",");
-    vsCount[key]=(vsCount[key]||0)+1;
-    courts[cidx]=[p1,p2];
-  } else {
-    let match=pickDoubles();
-    if(!match){courts[cidx]=null; renderCourts(); return;}
-    let [t1,t2]=match;
-    t1.forEach(p=>{p.matches++; p.lastPlayed=Date.now();});
-    t2.forEach(p=>{p.matches++; p.lastPlayed=Date.now();});
-    pairCount[[t1[0].id,t1[1].id].sort((a,b)=>a-b).join(",")] = ((pairCount[[t1[0].id,t1[1].id].sort((a,b)=>a-b).join(",")])||0)+1;
-    pairCount[[t2[0].id,t2[1].id].sort((a,b)=>a-b).join(",")] = ((pairCount[[t2[0].id,t2[1].id].sort((a,b)=>a-b).join(",")])||0)+1;
-    let key=[[t1[0].id,t1[1].id].sort((a,b)=>a-b).join(","),[t2[0].id,t2[1].id].sort((a,b)=>a-b).join(",")].join("-");
-    vsCount[key]=(vsCount[key]||0)+1;
-    courts[cidx]=[t1,t2];
+function generateMatches(){
+  matches = [];
+  let type = matchTypeInput.value;
+  let matchNum = Math.floor(players.length/(type==='singles'?2:4));
+  for(let i=0;i<matchNum;i++){
+    if(type==='singles') matches.push(pickSingles());
+    else matches.push(pickDoubles());
   }
+}
+
+function generateCourts(){
+  let c = parseInt(courtCountInput.value);
+  courts = new Array(c).fill(null);
+  currentMatchIndex = new Array(c).fill(0);
   renderCourts();
-  updatePlayerTable();
 }
 
 function renderCourts(){
-  courtsDiv.innerHTML="";
-  courts.forEach((m,index)=>{
-    let div=document.createElement("div");
+  courtsDiv.innerHTML = "";
+  courts.forEach((_,i)=>{
+    let match = matches[currentMatchIndex[i]];
+    let div = document.createElement("div");
     div.className="court";
-    div.onclick=()=>newMatch(index);
-    let html=`<h3>コート ${index+1}</h3>`;
-    if(!m) html+="<p>試合なし</p>";
-    else if(mode==="singles") html+="<p>"+m.map(p=>"プレイヤー"+p.id).join(" vs ")+"</p>";
-    else html+="<p>("+m[0][0].id+","+m[0][1].id+") vs ("+m[1][0].id+","+m[1][1].id+")</p>";
-    div.innerHTML=html;
+    div.onclick=()=>nextMatch(i);
+    div.innerHTML = `<h3>コート ${i+1}</h3><p>${match ? (Array.isArray(match[0]) ? match.flat().map(p=>"プレイヤー"+p.id).join(" vs ") : match.map(p=>"プレイヤー"+p.id).join(" vs ")) : "試合なし"}</p>`;
     courtsDiv.appendChild(div);
   });
 }
 
-function generatePlayers(){
-  let n=parseInt(playerCountInput.value);
-  players=[];
-  for(let i=1;i<=n;i++) players.push(new Player(i));
-  updatePlayerTable();
-}
-
-function generateCourts(){
-  let n=parseInt(courtCountInput.value);
-  courts=Array(n).fill(null);
+function nextMatch(i){
+  if(currentMatchIndex[i]<matches.length-1) currentMatchIndex[i]++;
+  else currentMatchIndex[i]=0;
   renderCourts();
 }
 
-function generateMatches(){
-  generatePlayers();
-  generateCourts();
-  for(let i=0;i<courts.length;i++) newMatch(i);
-}
-
 function addPlayer(){
-  let maxNumber = players.length? Math.max(...players.map(p=>p.id)) :0;
-  let empty=[];
+  let maxNumber = Math.max(...players.map(p=>p.id), playerCountInput.value);
+  let empty = [];
   for(let i=1;i<=maxNumber;i++) if(!players.find(p=>p.id===i)) empty.push(i);
-  let newId = empty.length? empty[0] : maxNumber+1;
-  players.push(new Player(newId));
+  let newId = empty.length>0 ? empty[0] : maxNumber+1;
+  players.push({id:newId,matches:0,lastPlayed:0});
   updatePlayerTable();
-  messageDiv.innerText=`新しく ${newId} 番のプレイヤーが追加されました`;
+  messageDiv.innerText = `新しく ${newId} 番のプレイヤーが追加されました`;
 }
 
 function removePlayer(){
-  let id=parseInt(prompt("削除するプレイヤー番号を入力してください:"));
+  let id = parseInt(prompt("削除するプレイヤー番号を入力してください:"));
   if(isNaN(id)) return;
-  let idx=players.findIndex(p=>p.id===id);
-  if(idx!==-1){
-    players.splice(idx,1);
-    courts=courts.map(c=>{
-      if(!c)return null;
-      if(mode==="singles"){
-        if(c.some(p=>p.id===id)) return null;
-      } else {
-        if([c[0][0].id,c[0][1].id,c[1][0].id,c[1][1].id].includes(id)) return null;
-      }
-      return c;
-    });
+  let index = players.findIndex(p=>p.id===id);
+  if(index!==-1){
+    players.splice(index,1);
     updatePlayerTable();
-    renderCourts();
-    messageDiv.innerText=`${id} 番のプレイヤーが削除されました`;
-  } else messageDiv.innerText=`${id} 番のプレイヤーは存在しません`;
+    messageDiv.innerText = `${id} 番のプレイヤーが削除されました`;
+  } else messageDiv.innerText = `${id} 番のプレイヤーは存在しません`;
 }
 
-document.getElementById("generate").onclick=generateMatches;
-document.getElementById("addPlayer").onclick=addPlayer;
-document.getElementById("removePlayer").onclick=removePlayer;
-playerCountInput.oninput=()=>{updateLabels(); generatePlayers();};
-courtCountInput.oninput=()=>{updateLabels(); generateCourts();};
-matchTypeInput.onchange=()=>{mode=matchTypeInput.value; generateMatches();};
+document.getElementById("generate").onclick = ()=>{
+  generateMatches();
+  generateCourts();
+};
+
+document.getElementById("addPlayer").onclick = addPlayer;
+document.getElementById("removePlayer").onclick = removePlayer;
+
+playerCountInput.oninput=()=>{ updateLabels(); generatePlayers(); };
+courtCountInput.oninput=()=>{ updateLabels(); generateCourts(); };
 
 updateLabels();
 generatePlayers();
 generateMatches();
+generateCourts();
 </script>
 </body>
 </html>
