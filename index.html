@@ -10,12 +10,8 @@ body {
   padding: 20px;
   text-align: center;
 }
-h1 {
-  color: #2c3e50;
-}
-.controls {
-  margin-bottom: 20px;
-}
+h1 { color: #2c3e50; }
+.controls { margin-bottom: 20px; }
 label { margin-right: 10px; }
 input[type=range] { width: 150px; }
 button { margin: 5px; padding: 5px 10px; }
@@ -38,9 +34,7 @@ button { margin: 5px; padding: 5px 10px; }
   font-weight: bold;
   transition: transform 0.1s;
 }
-.court:hover {
-  transform: scale(1.05);
-}
+.court:hover { transform: scale(1.05); }
 </style>
 </head>
 <body>
@@ -62,32 +56,21 @@ button { margin: 5px; padding: 5px 10px; }
   <div>
     <button id="generate">試合生成</button>
     <button id="joinPlayer">プレイヤー追加</button>
+    <button id="removePlayer">プレイヤー削除</button>
   </div>
 </div>
 
 <div id="courts"></div>
 
 <script>
-class Player {
-  constructor(id){
-    this.id=id;
-    this.matches=0;
-    this.last_played=-1;
-  }
-}
+class Player { constructor(id){ this.id=id; this.matches=0; this.last_played=-1; } }
 
 class Scheduler {
   constructor(numPlayers,numCourts,mode){
-    this.players={};
-    for(let i=1;i<=numPlayers;i++) this.players[i]=new Player(i);
-    this.numCourts=numCourts;
-    this.mode=mode;
-    this.courts=new Array(numCourts).fill(null);
-    this.round=0;
-    this.vs_count={};
-    this.pair_count={};
+    this.players={}; for(let i=1;i<=numPlayers;i++) this.players[i]=new Player(i);
+    this.numCourts=numCourts; this.mode=mode; this.courts=new Array(numCourts).fill(null);
+    this.round=0; this.vs_count={}; this.pair_count={};
   }
-
   availablePlayers(){
     let busy=new Set();
     for(let m of this.courts){
@@ -97,7 +80,6 @@ class Scheduler {
     }
     return Object.values(this.players).filter(p=>!busy.has(p.id));
   }
-
   pickSingles(){
     let cand=this.availablePlayers();
     if(cand.length<2) return null;
@@ -110,7 +92,6 @@ class Scheduler {
     });
     return [p1,cand[0]];
   }
-
   pickDoubles(){
     let cand=this.availablePlayers();
     if(cand.length<4) return null;
@@ -130,19 +111,15 @@ class Scheduler {
     }
     return null;
   }
-
   newMatch(cid){
     this.round++;
     if(this.mode==='s'){
-      let match=this.pickSingles();
-      if(!match){ this.courts[cid]=null; return; }
-      let [p1,p2]=match;
-      [p1,p2].forEach(p=>{p.matches++; p.last_played=this.round;});
+      let match=this.pickSingles(); if(!match){ this.courts[cid]=null; return; }
+      let [p1,p2]=match; [p1,p2].forEach(p=>{p.matches++; p.last_played=this.round;});
       this.vs_count[[p1.id,p2.id].sort().join(',')] = (this.vs_count[[p1.id,p2.id].sort().join(',')]||0)+1;
       this.courts[cid]=[p1,p2];
     } else {
-      let match=this.pickDoubles();
-      if(!match){ this.courts[cid]=null; return; }
+      let match=this.pickDoubles(); if(!match){ this.courts[cid]=null; return; }
       let [t1,t2]=match;
       [t1,t2].forEach(team=>{
         team.forEach(p=>{p.matches++; p.last_played=this.round;});
@@ -152,44 +129,29 @@ class Scheduler {
       this.courts[cid]=[t1,t2];
     }
   }
-
-  finishMatch(cid){
-    this.courts[cid]=null;
-    this.newMatch(cid);
-  }
-
+  finishMatch(cid){ this.courts[cid]=null; this.newMatch(cid); }
   addPlayer(){
     let new_id=Object.keys(this.players).length?Math.max(...Object.keys(this.players).map(x=>+x))+1:1;
     let min_matches=Object.values(this.players).length?Math.min(...Object.values(this.players).map(p=>p.matches)):0;
-    let p=new Player(new_id); p.matches=min_matches;
-    this.players[new_id]=p;
+    let p=new Player(new_id); p.matches=min_matches; this.players[new_id]=p;
   }
 }
 
 let sched=null;
 
 function renderCourts(){
-  let container=document.getElementById("courts");
-  container.innerHTML="";
+  let container=document.getElementById("courts"); container.innerHTML="";
   if(!sched) return;
   for(let i=0;i<sched.numCourts;i++){
-    let div=document.createElement("div");
-    div.className="court";
-    div.dataset.cid=i;
+    let div=document.createElement("div"); div.className="court"; div.dataset.cid=i;
     if(!sched.courts[i]) div.textContent=`Court ${i+1}: 空`;
-    else if(sched.mode==='s'){
-      let [p1,p2]=sched.courts[i];
-      div.textContent=`Court ${i+1}: ${p1.id} vs ${p2.id}`;
-    } else {
-      let [t1,t2]=sched.courts[i];
-      div.textContent=`Court ${i+1}: (${t1[0].id},${t1[1].id}) vs (${t2[0].id},${t2[1].id})`;
-    }
+    else if(sched.mode==='s'){ let [p1,p2]=sched.courts[i]; div.textContent=`Court ${i+1}: ${p1.id} vs ${p2.id}`; }
+    else { let [t1,t2]=sched.courts[i]; div.textContent=`Court ${i+1}: (${t1[0].id},${t1[1].id}) vs (${t2[0].id},${t2[1].id})`; }
     div.onclick=()=>{ sched.finishMatch(i); renderCourts(); };
     container.appendChild(div);
   }
 }
 
-// イベント設定
 document.getElementById("numPlayers").oninput=function(){ document.getElementById("numPlayersVal").textContent=this.value; };
 document.getElementById("numCourts").oninput=function(){ document.getElementById("numCourtsVal").textContent=this.value; };
 
@@ -198,16 +160,31 @@ document.getElementById("generate").onclick=function(){
   let numCourts=parseInt(document.getElementById("numCourts").value);
   let mode=document.querySelector('input[name="mode"]:checked').value;
   sched=new Scheduler(numPlayers,numCourts,mode);
-  for(let c=0;c<numCourts;c++) sched.newMatch(c);
+  for(let c=0;c<sched.numCourts;c++) sched.newMatch(c);
   renderCourts();
 };
 
-document.getElementById("joinPlayer").onclick=function(){
+document.getElementById("joinPlayer").onclick = function() {
   if(!sched) return;
   sched.addPlayer();
-  for(let c=0;c<sched.numCourts;c++){
-    if(!sched.courts[c]) sched.newMatch(c);
+  document.getElementById("numPlayers").value = Object.keys(sched.players).length;
+  document.getElementById("numPlayersVal").textContent = Object.keys(sched.players).length;
+  for(let c=0;c<sched.numCourts;c++){ if(!sched.courts[c]) sched.newMatch(c); }
+  renderCourts();
+};
+
+document.getElementById("removePlayer").onclick = function() {
+  if(!sched) return;
+  if(Object.keys(sched.players).length === 0) return;
+  let maxId = Math.max(...Object.keys(sched.players).map(x=>+x));
+  delete sched.players[maxId];
+  document.getElementById("numPlayers").value = Object.keys(sched.players).length;
+  document.getElementById("numPlayersVal").textContent = Object.keys(sched.players).length;
+  for(let c=0;c<sched.numCourts;c++){ 
+    if(sched.courts[c] && (sched.mode==='s'?sched.courts[c].some(p=>p.id===maxId):[...sched.courts[c][0],...sched.courts[c][1]].some(p=>p.id===maxId)))
+      sched.courts[c]=null; 
   }
+  for(let c=0;c<sched.numCourts;c++){ if(!sched.courts[c]) sched.newMatch(c); }
   renderCourts();
 };
 </script>
