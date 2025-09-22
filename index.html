@@ -1,655 +1,232 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>試合管理システム</title>
-<style>
-  :root{
-    --bg:#f4f6f8; --card:#ffffff; --accent:#1976d2; --muted:#666;
-    --success:#2e7d32;
-  }
-  *{box-sizing:border-box}
-  body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,"Helvetica Neue",Arial;background:var(--bg);color:#111}
-  header{padding:18px;text-align:center;background:linear-gradient(90deg, #1565c0, #42a5f5);color:white}
-  header h1{margin:0;font-size:18px}
-  .wrap{max-width:1100px;margin:18px auto;padding:12px}
-  .controls{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;background:var(--card);padding:12px;border-radius:10px;align-items:center}
-  .controls .row{display:flex;gap:8px;align-items:center}
-  .controls label{font-size:14px;color:var(--muted)}
-  .controls input[type=range]{width:100%}
-  select,button,input[type=number]{padding:8px;border-radius:6px;border:1px solid #ddd;background:white}
-  button{cursor:pointer;border:none;background:var(--accent);color:white;padding:10px 12px;border-radius:6px}
-  button.secondary{background:#666}
-  .flex{display:flex;gap:12px;align-items:center}
-  #message{min-height:28px;margin:12px 0;padding:8px;border-radius:8px;background:rgba(33,150,243,0.06);color:#0b57a4;font-weight:600}
-  .grid{display:grid;grid-template-columns:2fr 1fr;gap:12px;margin-top:12px}
-  .card{background:var(--card);padding:12px;border-radius:10px;box-shadow:0 2px 6px rgba(0,0,0,0.05)}
-  #courtArea{display:flex;flex-wrap:wrap;gap:12px}
-  .court{min-width:160px;flex:1 1 160px;padding:10px;border-radius:8px;border:1px solid #e0e0e0;background:linear-gradient(180deg,#fff,#fbfdff);cursor:pointer}
-  .court h3{margin:0 0 8px 0;font-size:15px}
-  .court p{margin:0;font-weight:700}
-  table{width:100%;border-collapse:collapse}
-  th,td{padding:10px;border-bottom:1px solid #eee;text-align:center;font-size:14px}
-  th{background:#fafafa;font-weight:700}
-  .small{font-size:12px;color:var(--muted)}
-  .muted{color:var(--muted)}
-  .actions{display:flex;gap:8px;flex-wrap:wrap}
-  .notice{color:var(--success);font-weight:700}
-  footer{margin-top:18px;text-align:center;color:var(--muted);font-size:13px}
-
-  @media (max-width:900px){
-    .controls{grid-template-columns:1fr; }
-    .grid{grid-template-columns:1fr; }
-  }
-</style>
+  <meta charset="UTF-8">
+  <title>🏸 バドミントン試合管理システム</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+    }
+    h1, h2 {
+      text-align: center;
+    }
+    .controls {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    .controls label {
+      margin: 0 10px;
+    }
+    .controls button {
+      font-size: 1.2em;
+      padding: 8px 16px;
+      margin: 5px;
+      border-radius: 8px;
+    }
+    .court {
+      border: 1px solid #333;
+      border-radius: 8px;
+      padding: 10px;
+      margin: 10px;
+      font-size: 1.5em;
+      text-align: center;
+      background: #f9f9f9;
+    }
+    .court-container {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+    table {
+      border-collapse: collapse;
+      margin: 0 auto;
+      margin-top: 20px;
+    }
+    table, th, td {
+      border: 1px solid black;
+    }
+    th, td {
+      padding: 5px 10px;
+      text-align: center;
+    }
+    .message {
+      text-align: center;
+      font-size: 1.2em;
+      margin-top: 15px;
+      color: blue;
+    }
+  </style>
 </head>
 <body>
-<header><h1>試合管理システム</h1></header>
+  <h1>🏸 バドミントン試合管理システム</h1>
 
-<div class="wrap">
-  <div class="controls" aria-label="controls">
-    <div class="row">
-      <label>① 人数: <span id="playerCountLabel">10</span></label>
-      <input id="playerCount" type="range" min="5" max="20" value="10" />
-    </div>
+  <div class="controls">
+    <label>人数: <span id="playerCountLabel">4</span></label>
+    <input type="range" id="playerCount" min="2" max="20" value="4">
+    
+    <label>コート数: <span id="courtCountLabel">2</span></label>
+    <input type="range" id="courtCount" min="1" max="10" value="2">
 
-    <div class="row">
-      <label>② コート数: <span id="courtCountLabel">2</span></label>
-      <input id="courtCount" type="range" min="1" max="6" value="2" />
-    </div>
+    <label>試合形式:</label>
+    <select id="matchType">
+      <option value="singles">シングルス</option>
+      <option value="doubles">ダブルス</option>
+    </select>
 
-    <div class="row">
-      <label>③ 試合形式</label>
-      <select id="matchType"><option value="singles">シングルス</option><option value="doubles">ダブルス</option></select>
-    </div>
-
-    <div class="row actions">
-      <button id="generateBtn">④ 試合生成</button>
-      <button id="nextAllBtn" class="secondary">コートを一斉進行</button>
-      <button id="resetBtn" class="secondary">リセット</button>
-    </div>
-
-    <div class="row actions">
-      <button id="addBtn">⑤ プレイヤー追加</button>
-      <input id="removeId" type="number" placeholder="削除番号" min="1" style="width:110px" />
-      <button id="removeBtn">⑥ プレイヤー削除</button>
-    </div>
-
-    <div class="row small muted">
-      <div>下限: シングルス = コート数×3, ダブルス = コート数×5</div>
-    </div>
+    <button id="generate">試合生成</button>
+    <button id="addPlayer">プレイヤー追加</button>
+    <button id="removePlayer">プレイヤー削除</button>
+    <input type="number" id="removeId" placeholder="削除番号" min="1" style="width:80px;">
   </div>
 
-  <div id="message" role="status"></div>
+  <h2>コート一覧</h2>
+  <div class="court-container" id="courts"></div>
 
-  <div class="grid">
-    <div class="card">
-      <h2 style="margin-top:0">⑦ コート一覧</h2>
-      <div id="courtArea" aria-live="polite"></div>
-      <div class="small muted" style="margin-top:8px">コートをクリックするとそのコートで次の試合が生成されます。</div>
-    </div>
-
-    <div class="card">
-      <h2 style="margin-top:0">⑧ プレイヤー番号一覧</h2>
-      <table aria-live="polite">
-        <thead><tr><th>番号</th><th>状態</th><th>試合数</th></tr></thead>
-        <tbody id="playerTable"></tbody>
-      </table>
-      <div class="small muted" style="margin-top:8px">空席は「空席」、参加中は「参加中」と表示されます。</div>
-    </div>
+  <div class="table-container">
+    <h2>プレイヤー番号表</h2>
+    <table id="playerTable">
+      <thead>
+        <tr><th>番号</th><th>状態</th></tr>
+      </thead>
+      <tbody></tbody>
+    </table>
   </div>
 
-  <footer>保存: localStorage（リロードしても保持）</footer>
-</div>
+  <div class="table-container">
+    <h2>番号管理表</h2>
+    <table id="numberTable">
+      <thead>
+        <tr><th>使用中の番号</th><th>空席番号</th></tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
 
-<script>
-/* ==========================
-   データ構造・永続化
-   ========================== */
-const STORAGE_KEY = "match_system_v1";
-let state = loadState();
+  <div class="message" id="message"></div>
 
-/* 初期化 */
-function defaultState(){
-  return {
-    players: [],          // Player objects
-    availableIds: [],     // 空席番号（再利用優先）
-    nextId: 1,            // 新規に割り当てる最大+1
-    courts: [],           // 各コート { players: [ids], round: n, text: '' }
-    matchHistory: [],     // [{round, type, players: [...]}]
-    roundCounter: 1       // ラウンド番号（増加）
-  };
-}
+  <script>
+    let players = {};
+    let availableIds = [];
+    let nextId = 1;
+    let matchHistory = []; // 試合ごとの履歴
 
-function loadState(){
-  try{
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if(raw) return JSON.parse(raw);
-  }catch(e){}
-  const s = defaultState();
-  // 初期プレイヤーを作る（人数スライダー値に合わせる初期化は起動後にapplySettings呼ぶ）
-  return s;
-}
-
-function saveState(){
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-}
-
-/* ==========================
-   ヘルパー（Playerオブジェクト）
-   Player: { id, matches, lastMatch, opponents:{id:count}, partners:{id:count}, lastPartner }
-   ========================== */
-function makePlayer(id){
-  return { id, matches:0, lastMatch:0, opponents:{}, partners:{}, lastPartner:null };
-}
-
-/* ==========================
-   UI要素
-   ========================== */
-const playerCountEl = document.getElementById("playerCount");
-const playerCountLabel = document.getElementById("playerCountLabel");
-const courtCountEl = document.getElementById("courtCount");
-const courtCountLabel = document.getElementById("courtCountLabel");
-const matchTypeEl = document.getElementById("matchType");
-const messageEl = document.getElementById("message");
-const courtArea = document.getElementById("courtArea");
-const playerTable = document.getElementById("playerTable");
-
-const addBtn = document.getElementById("addBtn");
-const removeBtn = document.getElementById("removeBtn");
-const removeIdInput = document.getElementById("removeId");
-const generateBtn = document.getElementById("generateBtn");
-const nextAllBtn = document.getElementById("nextAllBtn");
-const resetBtn = document.getElementById("resetBtn");
-
-/* 初期UI表示 */
-playerCountLabel.textContent = playerCountEl.value;
-courtCountLabel.textContent = courtCountEl.value;
-
-/* ==========================
-   UIレンダー
-   ========================== */
-function showMessage(msg, timeout=3000){
-  messageEl.textContent = msg || "";
-  if(timeout>0){ clearTimeout(showMessage._t); showMessage._t = setTimeout(()=>{ if(messageEl.textContent===msg) messageEl.textContent = ""; }, timeout); }
-}
-
-function renderPlayers(){
-  // テーブルは 1..maxId を表示し、参加中 or 空席、試合数表示
-  const usedIds = state.players.map(p=>p.id);
-  const maxId = Math.max(state.nextId-1, ...usedIds, 0);
-  playerTable.innerHTML = "";
-  for(let i=1;i<=Math.max(maxId, (parseInt(playerCountEl.value)||5)); i++){
-    const tr = document.createElement("tr");
-    const p = state.players.find(x=>x.id===i);
-    tr.innerHTML = `<td>#${i}</td>
-                    <td>${p ? "<strong>参加中</strong>" : "空席"}</td>
-                    <td>${p ? p.matches : "-"}</td>`;
-    playerTable.appendChild(tr);
-  }
-}
-
-function renderCourts(){
-  courtArea.innerHTML = "";
-  if(state.courts.length===0){
-    courtArea.innerHTML = "<div class='small muted'>試合が生成されていません。④ 試合生成 を押してください。</div>";
-    return;
-  }
-  state.courts.forEach((c, idx)=>{
-    const div = document.createElement("div");
-    div.className = "court";
-    const title = document.createElement("h3");
-    title.textContent = `コート ${idx+1}`;
-    const p = document.createElement("p");
-    if(c.players && c.players.length>0){
-      // 表示形式: A vs B  または A/B vs C/D
-      p.textContent = formatMatchText(c.players);
-    } else {
-      p.textContent = "待機中";
+    // プレイヤーデータ作成
+    function createPlayer(id) {
+      return {
+        id: id,
+        matches: 0,
+        lastMatch: -1,
+        opponents: {},
+        partners: {}
+      };
     }
-    div.appendChild(title);
-    div.appendChild(p);
-    div.addEventListener("click", ()=>{ advanceCourt(idx); });
-    courtArea.appendChild(div);
-  });
-}
 
-function formatMatchText(players){
-  if(!players || players.length===0) return "待機中";
-  const names = players.map(id=>`#${id}`);
-  if(players.length===2) return `${names[0]} vs ${names[1]}`;
-  if(players.length===4) return `${names[0]}/${names[1]} vs ${names[2]}/${names[3]}`;
-  return names.join(" vs ");
-}
-
-/* ==========================
-   ユーティリティ: 利用可能プレイヤー抽出
-   - 同時に行われている試合の参加者は除外
-   ========================== */
-function getActiveIdsOnCourts(excludeCourtIndex=null){
-  const set = new Set();
-  state.courts.forEach((c, idx)=>{
-    if(idx===excludeCourtIndex) return;
-    if(c.players) c.players.forEach(id=>set.add(id));
-  });
-  return set;
-}
-
-function getAvailablePlayers(excludeCourtIndex=null){
-  const busy = getActiveIdsOnCourts(excludeCourtIndex);
-  return state.players.filter(p=>!busy.has(p.id));
-}
-
-/* ==========================
-   ソート基準ヘルパー
-   優先順位（低い数を優先）：
-   1) matches（少ない）
-   2) lastMatch（古い => 小さい）
-   3) id（小さいは最終手段）
-   ※「番号小」は最も優先度低い。その他の条件が同等の場合にのみ適用。
-   ========================== */
-function sortByPriority(list){
-  return list.slice().sort((a,b)=>{
-    if(a.matches !== b.matches) return a.matches - b.matches;
-    if(a.lastMatch !== b.lastMatch) return a.lastMatch - b.lastMatch;
-    return a.id - b.id; // 最終手段
-  });
-}
-
-/* ==========================
-   対戦回数取得（存在しない場合は0）
-   ========================== */
-function oppCount(a, b){
-  return (a.opponents && a.opponents[b]) ? a.opponents[b] : 0;
-}
-function partnerCount(a, b){
-  return (a.partners && a.partners[b]) ? a.partners[b] : 0;
-}
-
-/* ==========================
-   試合更新ロジック（試合成立後の履歴更新）
-   playersIds: 配列（2 or 4）
-   courtIndex: どのコートで行われたか（lastMatch用）
-   ========================== */
-function applyMatchResult(playersIds, courtIndex){
-  const round = state.roundCounter++;
-  const involved = playersIds.map(id=>state.players.find(p=>p.id===id));
-  // 更新
-  involved.forEach(p=>{
-    p.matches = (p.matches||0) + 1;
-    p.lastMatch = round;
-  });
-
-  if(playersIds.length === 2){
-    const [a,b] = involved;
-    a.opponents[b.id] = (a.opponents[b.id]||0) + 1;
-    b.opponents[a.id] = (b.opponents[a.id]||0) + 1;
-    // lastPartnerはシングルスでは影響しないが nullにしておく
-    a.lastPartner = a.lastPartner || null;
-    b.lastPartner = b.lastPartner || null;
-  } else if(playersIds.length === 4){
-    const [p1,p2,p3,p4] = involved;
-    // ペア履歴
-    p1.partners[p2.id] = (p1.partners[p2.id]||0) + 1;
-    p2.partners[p1.id] = (p2.partners[p1.id]||0) + 1;
-    p3.partners[p4.id] = (p3.partners[p4.id]||0) + 1;
-    p4.partners[p3.id] = (p4.partners[p3.id]||0) + 1;
-    // 対戦履歴（チーム同士の対戦）
-    [p1,p2].forEach(a=>{
-      [p3,p4].forEach(b=>{
-        a.opponents[b.id] = (a.opponents[b.id]||0) + 1;
-        b.opponents[a.id] = (b.opponents[a.id]||0) + 1;
+    function updateTables() {
+      // プレイヤー番号表
+      const tbody = document.querySelector("#playerTable tbody");
+      tbody.innerHTML = "";
+      Object.keys(players).sort((a,b)=>a-b).forEach(id => {
+        let row = document.createElement("tr");
+        row.innerHTML = `<td>${id}</td><td>参加中</td>`;
+        tbody.appendChild(row);
       });
-    });
-    // lastPartner を更新（直前ペア回避用）
-    p1.lastPartner = p2.id;
-    p2.lastPartner = p1.id;
-    p3.lastPartner = p4.id;
-    p4.lastPartner = p3.id;
-  }
 
-  // matchHistoryに記録
-  state.matchHistory.push({ round, type: matchTypeEl.value, players: playersIds.slice(), court: courtIndex+1, time: Date.now() });
-  saveState();
-}
+      // 番号管理表
+      const numBody = document.querySelector("#numberTable tbody");
+      numBody.innerHTML = "";
+      let used = Object.keys(players).sort((a,b)=>a-b).join(", ") || "-";
+      let empty = availableIds.sort((a,b)=>a-b).join(", ") || "-";
+      let row = document.createElement("tr");
+      row.innerHTML = `<td>${used}</td><td>${empty}</td>`;
+      numBody.appendChild(row);
 
-/* ==========================
-   シングルス選出ルール
-   - p1: matches最小, lastMatch最小, id最小（最終手段）
-   - p2: 上記条件と、p1との対戦回数最小を優先
-   - 同時試合の他のプレイヤーと重複しない（呼び出し側で除外済み）
-   ========================== */
-function selectSinglesForCourt(excludeCourtIndex=null){
-  const available = getAvailablePlayers(excludeCourtIndex);
-  if(available.length < 2) return null;
-
-  const sorted = sortByPriority(available);
-  const p1 = sorted[0];
-
-  // p2候補: p1を除き、p1との対戦回数が少ない順。その他は同じソート基準。
-  const others = available.filter(p=>p.id !== p1.id);
-  others.sort((a,b)=>{
-    const oa = oppCount(p1,a);
-    const ob = oppCount(p1,b);
-    if(oa !== ob) return oa - ob;
-    // tie-break: original priority (matches, lastMatch, id)
-    if(a.matches !== b.matches) return a.matches - b.matches;
-    if(a.lastMatch !== b.lastMatch) return a.lastMatch - b.lastMatch;
-    return a.id - b.id;
-  });
-
-  const p2 = others[0];
-  if(!p2) return null;
-  return [p1.id, p2.id];
-}
-
-/* ==========================
-   ダブルス選出ルール
-   1) p1: matches最小, lastMatch最小, id最小
-   2) p2: p1と組んだ回数が少ない順、その他はp1の選出基準
-      直前ペア（p1.lastPartner）を避ける
-   3) p3: p1/p2との対戦回数合計が少ない順、その他基準
-   4) p4: p3と組んだ回数が少ない順、直前ペア（p3.lastPartner）を避ける
-   同時試合の重複回避は呼び出し側で対応
-   追加ルール: 前の試合で組んだ人と2回続けて組まない（lastPartner）
-   ========================== */
-function selectDoublesForCourt(excludeCourtIndex=null){
-  const available = getAvailablePlayers(excludeCourtIndex);
-  if(available.length < 4) return null;
-
-  const sorted = sortByPriority(available);
-  const p1 = sorted[0];
-
-  // p2候補: avoid p1.lastPartner, sort by partnerCount with p1, then by priority
-  const p2cands = available.filter(p=>p.id !== p1.id && p.id !== p1.lastPartner);
-  if(p2cands.length === 0){
-    // どうしても避けられない場合は lastPartner を許容する候補から取る
-    p2cands.push(...available.filter(p=>p.id !== p1.id));
-  }
-  p2cands.sort((a,b)=>{
-    const pa = partnerCount(p1,a), pb = partnerCount(p1,b);
-    if(pa !== pb) return pa - pb;
-    if(a.matches !== b.matches) return a.matches - b.matches;
-    if(a.lastMatch !== b.lastMatch) return a.lastMatch - b.lastMatch;
-    return a.id - b.id;
-  });
-  const p2 = p2cands[0];
-  if(!p2) return null;
-
-  // p3候補: not p1,p2
-  const p3cands = available.filter(p=>p.id !== p1.id && p.id !== p2.id);
-  // sort by combined opponent counts with p1 & p2 (sum)
-  p3cands.sort((a,b)=>{
-    const ca = (oppCount(a,p1)+oppCount(a,p2));
-    const cb = (oppCount(b,p1)+oppCount(b,p2));
-    if(ca !== cb) return ca - cb;
-    if(a.matches !== b.matches) return a.matches - b.matches;
-    if(a.lastMatch !== b.lastMatch) return a.lastMatch - b.lastMatch;
-    return a.id - b.id;
-  });
-  const p3 = p3cands[0];
-  if(!p3) return null;
-
-  // p4候補: not p1,p2,p3; avoid p3.lastPartner if possible
-  const p4cands = available.filter(p=>![p1.id,p2.id,p3.id].includes(p.id) && p.id !== p3.lastPartner);
-  if(p4cands.length === 0){
-    p4cands.push(...available.filter(p=>![p1.id,p2.id,p3.id].includes(p.id)));
-  }
-  // sort by partnerCount with p3, then priority
-  p4cands.sort((a,b)=>{
-    const pa = partnerCount(p3,a), pb = partnerCount(p3,b);
-    if(pa !== pb) return pa - pb;
-    if(a.matches !== b.matches) return a.matches - b.matches;
-    if(a.lastMatch !== b.lastMatch) return a.lastMatch - b.lastMatch;
-    return a.id - b.id;
-  });
-  const p4 = p4cands[0];
-  if(!p4) return null;
-
-  // 最終チェック: p1 and p2 must not be same as p3/p4 (redundant)
-  return [p1.id,p2.id,p3.id,p4.id];
-}
-
-/* ==========================
-   コート進行（単一コート）
-   - クリックでそのコートの次の試合を生成
-   - 初回は first-run ルール: ID順で割当（コート1..順に）
-   ========================== */
-function advanceCourt(courtIndex){
-  const type = matchTypeEl.value;
-  // check minimum players constraint
-  const minPlayers = (type === "singles") ? (state.courts.length * 3) : (state.courts.length * 5);
-  if(state.players.length < minPlayers){
-    showMessage(`プレイヤー不足: ${type==='singles' ? 'シングルス' : 'ダブルス'} の最小人数は ${minPlayers} です`);
-    return;
-  }
-
-  // First-run: if matchHistory is empty OR court has text '初回' we generate initial allocation by ID order
-  const firstRun = state.matchHistory.length === 0;
-  if(firstRun){
-    // initial assignment across all courts in order by ID
-    assignInitialMatches();
-    renderCourts();
-    renderPlayers();
-    showMessage("初回割当を ID 順で行いました");
-    return;
-  }
-
-  // for this court, select players excluding others currently playing
-  const typeSelect = (type==='singles') ? selectSinglesForCourt(courtIndex) : selectDoublesForCourt(courtIndex);
-  if(!typeSelect){
-    showMessage("試合生成できる十分なプレイヤーがいません");
-    return;
-  }
-
-  // assign to court, update histories
-  state.courts[courtIndex].players = typeSelect.slice();
-  state.courts[courtIndex].round = state.roundCounter;
-  applyMatchResult(typeSelect, courtIndex);
-  saveState();
-  renderCourts();
-  renderPlayers();
-  showMessage(`コート${courtIndex+1} を進めました: ${formatMatchText(typeSelect)}`);
-}
-
-/* ==========================
-   全コート一斉進行（ボタン）
-   コートごとに順に次試合を生成（第一試合は第一コートから）
-   ========================== */
-function nextAll(){
-  // ensure minimum players
-  const type = matchTypeEl.value;
-  const minPlayers = (type === "singles") ? (state.courts.length * 3) : (state.courts.length * 5);
-  if(state.players.length < minPlayers){
-    showMessage(`プレイヤー不足: 最小人数 ${minPlayers} を満たしていません`);
-    return;
-  }
-  for(let i=0;i<state.courts.length;i++){
-    // For each court, try to select and assign. If selection fails for a court, skip it.
-    const selection = (type==='singles') ? selectSinglesForCourt(i) : selectDoublesForCourt(i);
-    if(!selection) continue;
-    state.courts[i].players = selection.slice();
-    state.courts[i].round = state.roundCounter;
-    applyMatchResult(selection, i);
-  }
-  saveState();
-  renderCourts();
-  renderPlayers();
-  showMessage("全コートを一斉に進めました");
-}
-
-/* ==========================
-   初回ID順割当（複数コート対応）
-   - ID順に並んで、各コートに必要人数分割り当て
-   - シングルス: 各コート2人, ダブルス: 各コート4人
-   - コート数分だけ順に割り当て（1番コート→2番コート ...）
-   ========================== */
-function assignInitialMatches(){
-  const type = matchTypeEl.value;
-  const perCourt = (type==='singles') ? 2 : 4;
-  const sortedPlayers = state.players.slice().sort((a,b)=>a.id-b.id);
-  state.courts = state.courts.map(()=>({players:[],round:null,text:''})); // reset
-  let idx = 0;
-  for(let c=0;c<state.courts.length;c++){
-    const take = sortedPlayers.slice(idx, idx+perCourt).map(p=>p.id);
-    if(take.length === perCourt){
-      state.courts[c].players = take;
-      state.courts[c].round = state.roundCounter;
-      applyMatchResult(take, c);
-    } else {
-      state.courts[c].players = [];
+      document.getElementById("playerCountLabel").innerText = Object.keys(players).length;
+      document.getElementById("playerCount").value = Object.keys(players).length;
     }
-    idx += perCourt;
-  }
-  saveState();
-}
 
-/* ==========================
-   設定反映: コート数スライダー・人数バー
-   - コート数が変われば state.courts を調整
-   - 人数上限はスライダー値、実際の現存プレイヤーが上限を超える場合はスライダーに合わせて許容
-   ========================== */
-function applySettings(){
-  const courtCount = parseInt(courtCountEl.value) || 1;
-  // adjust courts array length
-  while(state.courts.length < courtCount) state.courts.push({players:[],round:null,text:''});
-  while(state.courts.length > courtCount) state.courts.pop();
+    function addPlayer() {
+      let id;
+      if (availableIds.length > 0) {
+        id = availableIds.shift();
+      } else {
+        id = nextId++;
+      }
+      players[id] = createPlayer(id);
+      document.getElementById("message").innerText = `新しく ${id} 番のプレイヤーが追加されました`;
+      updateTables();
+    }
 
-  // ensure minimum players requirement highlighted in UI via message when attempting actions
-  playerCountLabel.textContent = playerCountEl.value;
-  courtCountLabel.textContent = courtCountEl.value;
-  saveState();
-  renderCourts();
-  renderPlayers();
-}
+    function removePlayer() {
+      const id = parseInt(document.getElementById("removeId").value);
+      if (!id || !players[id]) {
+        document.getElementById("message").innerText = `番号 ${id} のプレイヤーは存在しません`;
+        return;
+      }
+      delete players[id];
+      availableIds.push(id);
+      document.getElementById("message").innerText = `${id} 番のプレイヤーが削除されました`;
+      updateTables();
+    }
 
-/* ==========================
-   プレイヤー追加 / 削除（空席再利用）
-   - 追加: 空いている最小番号を優先、なければ nextId を使う
-   - 追加時の試合数は既存プレイヤーの最小値に合わせる
-   - 削除: プレイヤーオブジェクトを除去し、そのIDは availableIds に追加
-   ========================== */
-function addPlayer(){
-  const targetMax = parseInt(playerCountEl.value) || 20;
-  if(state.players.length >= targetMax){
-    showMessage("満員のため追加できません");
-    return;
-  }
-  // find smallest unused ID
-  const used = new Set(state.players.map(p=>p.id));
-  let newId = 1;
-  while(used.has(newId)) newId++;
-  // if none, newId will be next free
-  const minMatches = state.players.length ? Math.min(...state.players.map(p=>p.matches||0)) : 0;
-  const p = makePlayer(newId);
-  p.matches = minMatches;
-  state.players.push(p);
-  state.nextId = Math.max(state.nextId, newId+1);
-  // if newId was in availableIds remove it
-  state.availableIds = state.availableIds.filter(x=>x!==newId);
-  saveState();
-  renderPlayers();
-  showMessage(`新しく #${newId} のプレイヤーが追加されました`);
-}
+    // 選手選出の基本ソート関数
+    function sortPlayers(candidates) {
+      return candidates.sort((a,b)=>{
+        if (players[a].matches !== players[b].matches) {
+          return players[a].matches - players[b].matches;
+        }
+        if (players[a].lastMatch !== players[b].lastMatch) {
+          return players[a].lastMatch - players[b].lastMatch;
+        }
+        return a - b;
+      });
+    }
 
-function removePlayer(){
-  const id = parseInt(removeIdInput.value);
-  if(!id){ showMessage("削除する番号を入力してください"); return; }
-  const idx = state.players.findIndex(p=>p.id===id);
-  if(idx === -1){ showMessage(`#${id} は存在しません`); return; }
-  // remove from players
-  state.players.splice(idx,1);
-  // clear from any court if present
-  state.courts.forEach(c=>{
-    if(c.players) c.players = c.players.filter(pid=>pid !== id);
-  });
-  // add to availableIds (維持)
-  if(!state.availableIds.includes(id)) state.availableIds.push(id);
-  state.availableIds.sort((a,b)=>a-b);
-  saveState();
-  renderPlayers();
-  renderCourts();
-  showMessage(`#${id} を削除しました（空席にしました）`);
-}
+    // 試合生成
+    function generateMatches() {
+      const courtCount = parseInt(document.getElementById("courtCount").value);
+      const matchType = document.getElementById("matchType").value;
+      const courtsDiv = document.getElementById("courts");
+      courtsDiv.innerHTML = "";
+      let ids = Object.keys(players).map(Number).sort((a,b)=>a-b);
 
-/* ==========================
-   初期化・イベントバインド
-   ========================== */
-playerCountEl.addEventListener("input", ()=>{
-  playerCountLabel.textContent = playerCountEl.value;
-  renderPlayers();
-});
-courtCountEl.addEventListener("input", ()=>{
-  courtCountLabel.textContent = courtCountEl.value;
-  applySettings();
-});
-matchTypeEl.addEventListener("change", ()=>{ renderPlayers(); });
-
-addBtn.addEventListener("click", addPlayer);
-removeBtn.addEventListener("click", removePlayer);
-generateBtn.addEventListener("click", ()=>{
-  // generate: 初回はID順割当（assignInitialMatches）。以降は各コートに初回生成 (空なら初回割当)
-  const courtCount = parseInt(courtCountEl.value) || 1;
-  // ensure courts length
-  while(state.courts.length < courtCount) state.courts.push({players:[],round:null,text:''});
-  while(state.courts.length > courtCount) state.courts.pop();
-  // Check minimum players constraint
-  const type = matchTypeEl.value;
-  const minPlayers = (type === "singles") ? (courtCount * 3) : (courtCount * 5);
-  if(state.players.length < minPlayers){
-    showMessage(`プレイヤー不足: 最小人数 ${minPlayers} を満たしてください`);
-    return;
-  }
-  // If first generation (no history), initial ID-order assignment
-  if(state.matchHistory.length === 0){
-    assignInitialMatches();
-    showMessage("初回割当を ID 順で行いました");
-  } else {
-    // If not first-run, just try to fill empty courts sequentially (court1..)
-    for(let i=0;i<state.courts.length;i++){
-      if(!state.courts[i].players || state.courts[i].players.length===0){
-        const selection = (type==='singles') ? selectSinglesForCourt(i) : selectDoublesForCourt(i);
-        if(selection){
-          state.courts[i].players = selection.slice();
-          state.courts[i].round = state.roundCounter;
-          applyMatchResult(selection, i);
+      if (matchType === "singles") {
+        for (let c=0; c<courtCount; c++) {
+          if (ids.length < 2) break;
+          let [p1, p2] = ids.splice(0,2);
+          makeMatch([p1],[p2],c+1,courtsDiv);
+        }
+      } else {
+        for (let c=0; c<courtCount; c++) {
+          if (ids.length < 4) break;
+          let [p1,p2,p3,p4] = ids.splice(0,4);
+          makeMatch([p1,p2],[p3,p4],c+1,courtsDiv);
         }
       }
+      updateTables();
     }
-    saveState();
-    showMessage("試合を生成しました");
-  }
-  renderCourts();
-  renderPlayers();
-});
 
-nextAllBtn.addEventListener("click", nextAll);
-resetBtn.addEventListener("click", ()=>{
-  if(!confirm("すべてのデータを初期化しますか？")) return;
-  localStorage.removeItem(STORAGE_KEY);
-  state = defaultState();
-  renderCourts();
-  renderPlayers();
-  showMessage("データをリセットしました");
-});
+    function makeMatch(team1, team2, court, parent) {
+      let div = document.createElement("div");
+      div.className = "court";
+      div.innerText = `コート${court}: ${team1.join("&")} vs ${team2.join("&")}`;
+      parent.appendChild(div);
 
-/* ページ読み込み時に既存stateから初期レンダリング */
-(function init(){
-  // If there are no players but slider indicates initial desired number, create them
-  const desired = parseInt(playerCountEl.value);
-  if(state.players.length === 0){
-    for(let i=1;i<=desired;i++){
-      state.players.push(makePlayer(i));
-      state.nextId = i+1;
+      let matchId = matchHistory.length;
+      matchHistory.push({team1,team2});
+
+      [...team1,...team2].forEach(pid=>{
+        players[pid].matches++;
+        players[pid].lastMatch = matchId;
+      });
     }
-    saveState();
-  }
-  // ensure courts length matches slider
-  applySettings();
-  renderPlayers();
-  renderCourts();
-})();
-</script>
+
+    document.getElementById("addPlayer").addEventListener("click", addPlayer);
+    document.getElementById("removePlayer").addEventListener("click", removePlayer);
+    document.getElementById("generate").addEventListener("click", generateMatches);
+
+    // 初期4人
+    for (let i=0;i<4;i++) addPlayer();
+  </script>
 </body>
 </html>
