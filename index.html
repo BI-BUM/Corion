@@ -5,10 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1" />
 <title>MATCHSCHED</title>
 <style>
-  :root{
-    --bg:#f4f6f8; --card:#ffffff; --accent:#1976d2; --muted:#666;
-    --success:#2e7d32;
-  }
+  :root{--bg:#f4f6f8; --card:#ffffff; --accent:#1976d2; --muted:#666;--success:#2e7d32;}
   *{box-sizing:border-box}
   body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,"Helvetica Neue",Arial;background:var(--bg);color:#111}
   header{padding:18px;text-align:center;background:linear-gradient(90deg, #1565c0, #1565c0);color:white}
@@ -50,12 +47,12 @@
 <div class="wrap">
   <div class="controls" aria-label="controls">
     <div class="row">
-      <label>人数: <span id="playerCountLabel">10</span></label>
+      <label>人数: <span id="playerCountLabel">1</span></label>
       <input id="playerCount" type="range" min="5" max="20" value="10" />
     </div>
 
     <div class="row">
-      <label>コート数: <span id="courtCountLabel">2</span></label>
+      <label>コート数: <span id="courtCountLabel">1</span></label>
       <input id="courtCount" type="range" min="1" max="6" value="2" />
     </div>
 
@@ -255,10 +252,23 @@ function sortByPriority(list){
 }
 
 /* ==========================
-   対戦/ペア回数取得
+   対戦/ペア回数取得（修正版）
    ========================== */
-function oppCount(a, b){ return (a.opponents && a.opponents[b]) ? a.opponents[b] : 0; }
-function partnerCount(a, b){ return (a.partners && a.partners[b]) ? a.partners[b] : 0; }
+function oppCount(a, b) {
+  const aid = (a && typeof a === 'object') ? a.id : a;
+  const bid = (b && typeof b === 'object') ? b.id : b;
+  const pa = state.players.find(x => x.id === aid) || a; // a がすでにプレイヤーならそれを使う
+  const map = (pa && pa.opponents) ? pa.opponents : {};
+  return map[bid] || 0;
+}
+
+function partnerCount(a, b) {
+  const aid = (a && typeof a === 'object') ? a.id : a;
+  const bid = (b && typeof b === 'object') ? b.id : b;
+  const pa = state.players.find(x => x.id === aid) || a;
+  const map = (pa && pa.partners) ? pa.partners : {};
+  return map[bid] || 0;
+}
 
 /* ==========================
    試合更新ロジック（試合成立後の履歴更新）
@@ -300,74 +310,118 @@ function applyMatchResult(playersIds, courtIndex){
 }
 
 /* ==========================
-   シングルス選出
+   シングルス選出（条件完全対応版）
    ========================== */
-function selectSinglesForCourt(excludeCourtIndex=null){
+function selectSinglesForCourt(excludeCourtIndex = null) {
   const available = getAvailablePlayers(excludeCourtIndex);
-  if(available.length < 2) return null;
-  const sorted = sortByPriority(available);
+  if (available.length < 2) return null;
+
+  // 経過時間を候補内で相対計算
+  const maxLM = Math.max(...available.map(p => (p.lastMatch ?? -Infinity)));
+  const age = p => (maxLM - (p.lastMatch ?? -Infinity)); // 大きいほど休んでいる
+
+  // 1人目: 試合数 少 → 経過長 大 → 番号 小
+  const sorted = available.slice().sort((a, b) => {
+    if (a.matches !== b.matches) return a.matches - b.matches;
+    const ag = age(a), bg = age(b);
+    if (ag !== bg) return bg - ag;
+    return a.id - b.id;
+  });
   const p1 = sorted[0];
 
-  const others = available.filter(p=>p.id !== p1.id);
-  others.sort((a,b)=>{
-    const oa = oppCount(p1,a), ob = oppCount(p1,b);
-    if(oa !== ob) return oa - ob;
-    if(a.matches !== b.matches) return a.matches - b.matches;
-    if(a.lastMatch !== b.lastMatch) return a.lastMatch - b.lastMatch;
+  // 2人目: p1との対戦回数 少 → 試合数 少 → 経過長 大 → 番号 小
+  const candidates = available.filter(p => p.id !== p1.id);
+  candidates.sort((a, b) => {
+    const ca = oppCount(p1, a), cb = oppCount(p1, b);
+    if (ca !== cb) return ca - cb;
+    if (a.matches !== b.matches) return a.matches - b.matches;
+    const ag = age(a), bg = age(b);
+    if (ag !== bg) return bg - ag;
     return a.id - b.id;
   });
 
-  const p2 = others[0];
-  if(!p2) return null;
+  const p2 = candidates[0];
+  if (!p2) return null;
   return [p1.id, p2.id];
 }
 
 /* ==========================
-   ダブルス選出
+   ダブルス選出（条件完全対応版）
    ========================== */
-function selectDoublesForCourt(excludeCourtIndex=null){
+function selectDoublesForCourt(excludeCourtIndex = null) {
   const available = getAvailablePlayers(excludeCourtIndex);
-  if(available.length < 4) return null;
-  const sorted = sortByPriority(available);
+  if (available.length < 4) return null;
+
+  const maxLM = Math.max(...available.map(p => (p.lastMatch ?? -Infinity)));
+  const age = p => (maxLM - (p.lastMatch ?? -Infinity));
+
+  // 1人目
+  const sorted = available.slice().sort((a, b) => {
+    if (a.matches !== b.matches) return a.matches - b.matches;
+    const ag = age(a), bg = age(b);
+    if (ag !== bg) return bg - ag;
+    return a.id - b.id;
+  });
   const p1 = sorted[0];
 
-  const p2cands = available.filter(p=>p.id !== p1.id && p.id !== p1.lastPartner);
-  if(p2cands.length === 0) p2cands.push(...available.filter(p=>p.id !== p1.id));
-  p2cands.sort((a,b)=>{
-    const pa = partnerCount(p1,a), pb = partnerCount(p1,b);
-    if(pa !== pb) return pa - pb;
-    if(a.matches !== b.matches) return a.matches - b.matches;
-    if(a.lastMatch !== b.lastMatch) return a.lastMatch - b.lastMatch;
+  // 2人目（p1のペア）
+  let p2cands = available.filter(p =>
+    p.id !== p1.id &&
+    p.id !== p1.lastPartner
+  );
+  if (p2cands.length === 0) {
+    p2cands = available.filter(p => p.id !== p1.id);
+  }
+  p2cands.sort((a, b) => {
+    const pa = partnerCount(p1, a), pb = partnerCount(p1, b);
+    if (pa !== pb) return pa - pb;
+    if (a.matches !== b.matches) return a.matches - b.matches;
+    const ag = age(a), bg = age(b);
+    if (ag !== bg) return bg - ag;
     return a.id - b.id;
   });
   const p2 = p2cands[0];
-  if(!p2) return null;
+  if (!p2) return null;
 
-  const p3cands = available.filter(p=>p.id !== p1.id && p.id !== p2.id);
-  p3cands.sort((a,b)=>{
-    const ca = (oppCount(a,p1)+oppCount(a,p2));
-    const cb = (oppCount(b,p1)+oppCount(b,p2));
-    if(ca !== cb) return ca - cb;
-    if(a.matches !== b.matches) return a.matches - b.matches;
-    if(a.lastMatch !== b.lastMatch) return a.lastMatch - b.lastMatch;
+  // 3人目（対戦相手1）
+  const p3cands = available.filter(p =>
+    p.id !== p1.id &&
+    p.id !== p2.id &&
+    p.id !== p1.lastPartner &&
+    p.id !== p2.lastPartner
+  );
+  p3cands.sort((a, b) => {
+    const minA = Math.min(oppCount(a, p1), oppCount(a, p2));
+    const minB = Math.min(oppCount(b, p1), oppCount(b, p2));
+    if (minA !== minB) return minA - minB;
+    if (a.matches !== b.matches) return a.matches - b.matches;
+    const ag = age(a), bg = age(b);
+    if (ag !== bg) return bg - ag;
     return a.id - b.id;
   });
   const p3 = p3cands[0];
-  if(!p3) return null;
+  if (!p3) return null;
 
-  const p4cands = available.filter(p=>![p1.id,p2.id,p3.id].includes(p.id) && p.id !== p3.lastPartner);
-  if(p4cands.length === 0) p4cands.push(...available.filter(p=>![p1.id,p2.id,p3.id].includes(p.id)));
-  p4cands.sort((a,b)=>{
-    const pa = partnerCount(p3,a), pb = partnerCount(p3,b);
-    if(pa !== pb) return pa - pb;
-    if(a.matches !== b.matches) return a.matches - b.matches;
-    if(a.lastMatch !== b.lastMatch) return a.lastMatch - b.lastMatch;
+  // 4人目（p3のペア）
+  let p4cands = available.filter(p =>
+    ![p1.id, p2.id, p3.id].includes(p.id) &&
+    p.id !== p3.lastPartner
+  );
+  if (p4cands.length === 0) {
+    p4cands = available.filter(p => ![p1.id, p2.id, p3.id].includes(p.id));
+  }
+  p4cands.sort((a, b) => {
+    const pa = partnerCount(p3, a), pb = partnerCount(p3, b);
+    if (pa !== pb) return pa - pb;
+    if (a.matches !== b.matches) return a.matches - b.matches;
+    const ag = age(a), bg = age(b);
+    if (ag !== bg) return bg - ag;
     return a.id - b.id;
   });
   const p4 = p4cands[0];
-  if(!p4) return null;
+  if (!p4) return null;
 
-  return [p1.id,p2.id,p3.id,p4.id];
+  return [p1.id, p2.id, p3.id, p4.id];
 }
 
 /* ==========================
