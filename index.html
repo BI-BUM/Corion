@@ -1,215 +1,516 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-<meta charset="UTF-8">
-<title>Badminton Match Scheduler</title>
+<meta charset="utf-8" />
+<title>バドミントン試合管理（ID順初回 + 公平選出）</title>
+<meta name="viewport" content="width=device-width,initial-scale=1" />
 <style>
-body {
-  font-family: Arial, sans-serif;
-  background: #f0f0f5;
-  padding: 20px;
-  text-align: center;
-}
-h1 {
-  color: #2c3e50;
-}
-.controls {
-  margin-bottom: 20px;
-}
-label { margin-right: 10px; }
-input[type=range] { width: 150px; }
-button { margin: 5px; padding: 5px 10px; }
-#courts {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 15px;
-}
-.court {
-  width: 180px;
-  height: 100px;
-  background: #fff;
-  border-radius: 8px;
-  box-shadow: 0 0 5px rgba(0,0,0,0.3);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  font-weight: bold;
-  transition: transform 0.1s;
-}
-.court:hover {
-  transform: scale(1.05);
-}
+  :root{--bg:#f0f4f8;--card:#fff;--accent:#0077cc}
+  body{font-family: Arial, "Hiragino Kaku Gothic ProN", Meiryo, sans-serif;background:var(--bg);margin:16px;color:#222}
+  h1,h2{text-align:center;margin:8px 0}
+  .controls{background:var(--card);padding:14px;border-radius:10px;box-shadow:0 2px 8px rgba(0,0,0,0.06);max-width:980px;margin:0 auto}
+  .controls label{display:block;margin:8px 0 6px}
+  .controls .row{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+  .controls input[type="range"]{width:260px}
+  .controls select, .controls button, .controls input[type="number"]{font-size:1rem;padding:8px 10px;border-radius:8px;border:1px solid #ddd;background:#fff;cursor:pointer}
+  .controls button{background:var(--accent);color:#fff;border:none}
+  .layout{max-width:980px;margin:16px auto}
+  .court-container{display:flex;flex-wrap:wrap;gap:14px;justify-content:center;margin-top:14px}
+  .court{background:var(--card);width:240px;padding:18px;border-radius:12px;box-shadow:0 6px 18px rgba(15,30,60,0.04);text-align:center;cursor:pointer;transition:transform .12s;font-size:1.15rem}
+  .court:hover{transform:translateY(-6px)}
+  .table-container{margin-top:18px;background:var(--card);padding:12px;border-radius:10px;box-shadow:0 6px 18px rgba(15,30,60,0.04)}
+  table{width:100%;border-collapse:collapse;text-align:center}
+  th,td{border:1px solid #eee;padding:8px}
+  th{background:#fafafa}
+  #message{margin-top:12px;text-align:center;color:var(--accent);font-weight:600}
+  @media(max-width:700px){ .court{width:46%} .controls input[type="range"]{width:160px} }
 </style>
 </head>
 <body>
-<h1>Badminton Match Scheduler</h1>
+  <h1>🏸 バドミントン試合管理</h1>
 
-<div class="controls">
-  <div>
-    <label>人数: <span id="numPlayersVal">4</span></label>
-    <input type="range" id="numPlayers" min="2" max="20" value="4">
-  </div>
-  <div>
-    <label>コート数: <span id="numCourtsVal">2</span></label>
-    <input type="range" id="numCourts" min="1" max="5" value="2">
-  </div>
-  <div>
-    <label><input type="radio" name="mode" value="s" checked> シングルス</label>
-    <label><input type="radio" name="mode" value="d"> ダブルス</label>
-  </div>
-  <div>
-    <button id="generate">試合生成</button>
-    <button id="joinPlayer">プレイヤー追加</button>
-  </div>
-</div>
+  <div class="controls" aria-label="コントロール">
+    <div class="row">
+      <label>人数: <strong id="playerCountLabel">4</strong></label>
+      <input id="playerCount" type="range" min="2" max="50" value="4">
+      <label style="margin-left:10px">コート数: <strong id="courtCountLabel">2</strong></label>
+      <input id="courtCount" type="range" min="1" max="12" value="2">
+    </div>
 
-<div id="courts"></div>
+    <div class="row" style="margin-top:8px">
+      <label>試合形式:</label>
+      <select id="matchType">
+        <option value="singles">シングルス</option>
+        <option value="doubles">ダブルス</option>
+      </select>
+
+      <button id="generate">④ 試合生成</button>
+      <button id="addPlayer">⑤ プレイヤー追加</button>
+
+      <div style="display:inline-flex;gap:8px;align-items:center">
+        <input id="removeId" type="number" placeholder="削除番号" min="1" style="width:110px">
+        <button id="removePlayer" style="background:#666">⑥ 削除</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="layout">
+    <h2>⑦ コート一覧（クリックでそのコートを次の試合に切替）</h2>
+    <div id="courts" class="court-container"></div>
+
+    <div class="table-container">
+      <h2>⑧ プレイヤー番号一覧</h2>
+      <table id="playerTable" aria-label="プレイヤー一覧">
+        <thead><tr><th>番号</th><th>状態</th><th>試合数</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+    <div id="message"></div>
+  </div>
 
 <script>
+/* ---------- データ構造 ---------- */
 class Player {
   constructor(id){
-    this.id=id;
-    this.matches=0;
-    this.last_played=-1;
+    this.id = id;
+    this.matches = 0;    // 試合回数
+    this.lastPlayed = -1; // 最後にプレイしたラウンド番号（整数）
+    this.lastPartner = null; // ダブルス時の直前のペア相手 id （連続ペア禁止用）
   }
 }
 
-class Scheduler {
-  constructor(numPlayers,numCourts,mode){
-    this.players={};
-    for(let i=1;i<=numPlayers;i++) this.players[i]=new Player(i);
-    this.numCourts=numCourts;
-    this.mode=mode;
-    this.courts=new Array(numCourts).fill(null);
-    this.round=0;
-    this.vs_count={};
-    this.pair_count={};
-  }
+/* グローバル state */
+let players = [];                 // Player[]
+let courts = [];                  // court assignments (each court: null | match)
+let roundCounter = 0;             // increasing integer for lastPlayed
+let vsCount = {};                 // {"1,2": n}
+let pairCount = {};               // {"1,2": n}
+let matchType = "singles";        // "singles" / "doubles"
 
-  availablePlayers(){
-    let busy=new Set();
-    for(let m of this.courts){
-      if(!m) continue;
-      if(this.mode==='s'){ busy.add(m[0].id); busy.add(m[1].id); }
-      else for(let p of [...m[0],...m[1]]) busy.add(p.id);
+const playerCountInput = document.getElementById('playerCount');
+const courtCountInput = document.getElementById('courtCount');
+const matchTypeSelect = document.getElementById('matchType');
+const playerCountLabel = document.getElementById('playerCountLabel');
+const courtCountLabel = document.getElementById('courtCountLabel');
+const courtsDiv = document.getElementById('courts');
+const playerTableBody = document.querySelector('#playerTable tbody');
+const messageDiv = document.getElementById('message');
+const removeIdInput = document.getElementById('removeId');
+
+/* ---------- ヘルパー ---------- */
+function keyPair(a,b){ return [a,b].slice().sort((x,y)=>x-y).join(','); }
+function vsCountWith(a,b){ return vsCount[keyPair(a,b)]||0; }
+function pairCountWith(a,b){ return pairCount[keyPair(a,b)]||0; }
+function wasPairLast(a,b){ return players.find(p=>p.id===a)?.lastPartner === b; }
+
+/* available players (not playing on any court now) */
+function availablePlayers(){
+  const busy = new Set();
+  for(const m of courts){
+    if(!m) continue;
+    if(matchType==='singles'){
+      busy.add(m[0].id); busy.add(m[1].id);
+    } else {
+      // m = [[p1,p2],[p3,p4]]
+      busy.add(m[0][0].id); busy.add(m[0][1].id); busy.add(m[1][0].id); busy.add(m[1][1].id);
     }
-    return Object.values(this.players).filter(p=>!busy.has(p.id));
   }
+  return players.filter(p => !busy.has(p.id));
+}
 
-  pickSingles(){
-    let cand=this.availablePlayers();
-    if(cand.length<2) return null;
-    cand.sort((a,b)=>a.matches-b.matches || a.last_played-b.last_played || a.id-b.id);
-    let p1=cand[0]; cand.splice(0,1);
-    cand.sort((a,b)=>{
-      let keyA=this.vs_count[[p1.id,a.id].sort().join(',')]||0;
-      let keyB=this.vs_count[[p1.id,b.id].sort().join(',')]||0;
-      return keyA-keyB || a.matches-b.matches || a.last_played-b.last_played || a.id-b.id;
-    });
-    return [p1,cand[0]];
+/* 更新系表示 */
+function updateLabels(){
+  playerCountLabel.textContent = playerCountInput.value;
+  courtCountLabel.textContent = courtCountInput.value;
+}
+function updatePlayerTable(){
+  playerTableBody.innerHTML = '';
+  const maxId = Math.max(...players.map(p=>p.id), parseInt(playerCountInput.value));
+  for(let i=1;i<=maxId;i++){
+    const p = players.find(x=>x.id===i);
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td>${i}</td><td>${p ? '参加中' : '空席'}</td><td>${p ? p.matches : '-'}</td>`;
+    playerTableBody.appendChild(tr);
   }
+}
+function showMessage(msg, ms=4000){
+  messageDiv.textContent = msg;
+  if(ms>0){ clearTimeout(showMessage._t); showMessage._t = setTimeout(()=>messageDiv.textContent='', ms); }
+}
 
-  pickDoubles(){
-    let cand=this.availablePlayers();
-    if(cand.length<4) return null;
-    let pairs=[];
-    for(let i=0;i<cand.length;i++)
-      for(let j=i+1;j<cand.length;j++) pairs.push([cand[i],cand[j]]);
-    pairs.sort((a,b)=>{
-      let keyA=this.pair_count[[a[0].id,a[1].id].sort().join(',')]||0;
-      let keyB=this.pair_count[[b[0].id,b[1].id].sort().join(',')]||0;
-      return keyA-keyB || (a[0].matches+a[1].matches)-(b[0].matches+b[1].matches);
-    });
-    for(let t1 of pairs){
-      for(let t2 of pairs){
-        let ids=new Set([t1[0].id,t1[1].id,t2[0].id,t2[1].id]);
-        if(ids.size===4) return [t1,t2];
+/* ---------- 初回（第1試合）割当：ID順で確定割当（コートごとに順に採番） ---------- */
+function initialAssignMatches(){
+  // produce an array of matches (length = number of courts)
+  const type = matchType;
+  const groupSize = (type==='singles'?2:4);
+  const nPlayers = players.length;
+  const sorted = players.slice().sort((a,b)=>a.id - b.id);
+  const numCourts = parseInt(courtCountInput.value,10);
+  const matches = [];
+
+  // For each court, take groupSize players starting at start = courtIndex * groupSize
+  // If full distinct group exists, use it. Otherwise allow wrapping (consecutive play) as allowed.
+  for(let c=0;c<numCourts;c++){
+    const start = c * groupSize;
+    const group = [];
+    for(let k=0;k<groupSize;k++){
+      const idx = (start + k);
+      if(nPlayers===0) break;
+      if(idx < nPlayers){
+        group.push(sorted[idx]);
+      } else {
+        // not enough distinct players — allow wrap (consecutive allowed)
+        const wrapped = sorted[(idx) % nPlayers];
+        group.push(wrapped);
       }
     }
-    return null;
-  }
-
-  newMatch(cid){
-    this.round++;
-    if(this.mode==='s'){
-      let match=this.pickSingles();
-      if(!match){ this.courts[cid]=null; return; }
-      let [p1,p2]=match;
-      [p1,p2].forEach(p=>{p.matches++; p.last_played=this.round;});
-      this.vs_count[[p1.id,p2.id].sort().join(',')] = (this.vs_count[[p1.id,p2.id].sort().join(',')]||0)+1;
-      this.courts[cid]=[p1,p2];
+    if(group.length === groupSize){
+      if(type==='singles'){
+        matches.push([group[0], group[1]]);
+      } else {
+        // form two teams: [g0,g1] vs [g2,g3]
+        matches.push([[group[0],group[1]],[group[2],group[3]]]);
+      }
     } else {
-      let match=this.pickDoubles();
-      if(!match){ this.courts[cid]=null; return; }
-      let [t1,t2]=match;
-      [t1,t2].forEach(team=>{
-        team.forEach(p=>{p.matches++; p.last_played=this.round;});
-        this.pair_count[[team[0].id,team[1].id].sort().join(',')] = (this.pair_count[[team[0].id,team[1].id].sort().join(',')]||0)+1;
-      });
-      this.vs_count[[ [t1[0].id,t1[1].id].sort().join(','), [t2[0].id,t2[1].id].sort().join(',') ].join('|')]=1;
-      this.courts[cid]=[t1,t2];
+      matches.push(null);
     }
   }
+  return matches;
+}
 
-  finishMatch(cid){
-    this.courts[cid]=null;
-    this.newMatch(cid);
+/* ---------- 選出ロジック（Pythonロジックを忠実に再現） ---------- */
+
+/* 1人目選出ルール（共通）
+   - available の中から matches最小 → lastPlayed最小 → id小 の順で選ぶ
+*/
+function selectFirst(available){
+  if(available.length===0) return null;
+  available.sort((a,b)=> (a.matches - b.matches) || (a.lastPlayed - b.lastPlayed) || (a.id - b.id));
+  return available[0];
+}
+
+/* シングルス：2人目選出
+   - 1人目との対戦回数が最小
+   - 同順なら matches/lastPlayed/id
+*/
+function pickSingles(){
+  const avail = availablePlayers();
+  if(avail.length < 2) return null;
+  // pick p1
+  const p1 = selectFirst(avail.slice());
+  // p2 candidates = avail without p1
+  const rest = avail.filter(x => x.id !== p1.id);
+  rest.sort((a,b)=>{
+    const cA = vsCountWith(p1.id, a.id);
+    const cB = vsCountWith(p1.id, b.id);
+    return (cA - cB) || (a.matches - b.matches) || (a.lastPlayed - b.lastPlayed) || (a.id - b.id);
+  });
+  const p2 = rest[0];
+  return [p1,p2];
+}
+
+/* ダブルス選出
+   Steps:
+   - p1: selectFirst
+   - p2: among available (excluding p1), prefer pairCount(p1,p) small, avoid if was paired last match with p1 (連続禁止)
+   - p3: among remaining, minimize vsCount with p1 and p2 (sum), then matches/lastPlayed/id
+   - p4: among remaining, prefer pairCount(p3,p) small, avoid last pair with p3
+*/
+function pickDoubles(){
+  const avail = availablePlayers();
+  if(avail.length < 4) return null;
+
+  // p1
+  const p1 = selectFirst(avail.slice());
+  // p2 candidates
+  let candidates2 = avail.filter(x=>x.id !== p1.id && !wasPairLast(p1.id,x.id));
+  if(candidates2.length===0){
+    // if all candidates were last-pair for p1, allow them (can't do better)
+    candidates2 = avail.filter(x=>x.id !== p1.id);
+  }
+  candidates2.sort((a,b)=>{
+    const cA = pairCountWith(p1.id,a.id), cB = pairCountWith(p1.id,b.id);
+    return (cA - cB) || (a.matches - b.matches) || (a.lastPlayed - b.lastPlayed) || (a.id - b.id);
+  });
+  const p2 = candidates2[0];
+
+  // remove p1,p2 from pool
+  const pool = avail.filter(x=> x.id !== p1.id && x.id !== p2.id);
+
+  // p3: minimize sum of vsCount with p1 and p2
+  pool.sort((a,b)=>{
+    const vsA = vsCountWith(p1.id,a.id) + vsCountWith(p2.id,a.id);
+    const vsB = vsCountWith(p1.id,b.id) + vsCountWith(p2.id,b.id);
+    return (vsA - vsB) || (a.matches - b.matches) || (a.lastPlayed - b.lastPlayed) || (a.id - b.id);
+  });
+  const p3 = pool[0];
+
+  // p4 candidates (not p1/p2/p3), avoid last pair with p3
+  let candidates4 = pool.filter(x=> x.id !== p3.id && !wasPairLast(p3.id,x.id));
+  if(candidates4.length===0){
+    candidates4 = pool.filter(x=> x.id !== p3.id);
+  }
+  candidates4.sort((a,b)=>{
+    const cA = pairCountWith(p3.id,a.id), cB = pairCountWith(p3.id,b.id);
+    return (cA - cB) || (a.matches - b.matches) || (a.lastPlayed - b.lastPlayed) || (a.id - b.id);
+  });
+  const p4 = candidates4[0];
+
+  return [[p1,p2],[p3,p4]];
+}
+
+/* ---------- マッチをコートに割当て（統一処理） ---------- */
+function assignMatchToCourt(cidx, match){
+  if(!match){
+    courts[cidx] = null;
+    renderCourts();
+    return;
+  }
+  roundCounter++;
+  // update counts and players
+  if(matchType==='singles'){
+    const [p1,p2] = match;
+    // increment Player objects in players array (by id)
+    const A = players.find(x=>x.id===p1.id);
+    const B = players.find(x=>x.id===p2.id);
+    if(A && B){
+      A.matches++; B.matches++;
+      A.lastPlayed = B.lastPlayed = roundCounter;
+    }
+    const k = keyPair(p1.id,p2.id);
+    vsCount[k] = (vsCount[k]||0) + 1;
+    // singles: no partners
+    courts[cidx] = [A,B];
+  } else {
+    const [[a,b],[c,d]] = match;
+    const A = players.find(x=>x.id===a.id);
+    const B = players.find(x=>x.id===b.id);
+    const C = players.find(x=>x.id===c.id);
+    const D = players.find(x=>x.id===d.id);
+    if(A && B && C && D){
+      [A,B,C,D].forEach(p => { p.matches++; p.lastPlayed = roundCounter; });
+      // update pairCount for the two pairs
+      const k1 = keyPair(A.id,B.id);
+      const k2 = keyPair(C.id,D.id);
+      pairCount[k1] = (pairCount[k1]||0) + 1;
+      pairCount[k2] = (pairCount[k2]||0) + 1;
+      // update vsCount for pair-vs-pair key (string of two pair keys)
+      const vsKey = k1 + '|' + k2;
+      vsCount[vsKey] = (vsCount[vsKey]||0) + 1;
+      // update lastPartner (for consecutive-pair prohibition)
+      A.lastPartner = B.id; B.lastPartner = A.id;
+      C.lastPartner = D.id; D.lastPartner = C.id;
+      courts[cidx] = [[A,B],[C,D]];
+    } else {
+      courts[cidx] = null;
+    }
+  }
+  renderCourts();
+  updatePlayerTable();
+}
+
+/* ---------- core operations ---------- */
+
+/* generateMatches:
+   - First, attempt initial (first-round) deterministic assignment by ID order across courts.
+   - If players are insufficient to create distinct groups for all courts, wrapping is used (consecutive allowed).
+   - Assign those matches to courts (and update counts/lastPlayed).
+*/
+function generateMatches(){
+  // ensure players array is up-to-date (create players from playerCount slider if needed)
+  if(players.length === 0){
+    generatePlayersFromSlider();
   }
 
-  addPlayer(){
-    let new_id=Object.keys(this.players).length?Math.max(...Object.keys(this.players).map(x=>+x))+1:1;
-    let min_matches=Object.values(this.players).length?Math.min(...Object.values(this.players).map(p=>p.matches)):0;
-    let p=new Player(new_id); p.matches=min_matches;
-    this.players[new_id]=p;
+  const type = matchType;
+  const groupSize = (type==='singles'?2:4);
+  const numCourts = parseInt(courtCountInput.value,10);
+
+  // initial deterministic assignment
+  const initial = initialAssignMatches(); // length == numCourts
+
+  // reset courts and assign these initial matches (this will update matches counts and lastPlayed)
+  courts = new Array(numCourts).fill(null);
+  // IMPORTANT: reset roundCounter? We'll increment as we assign initial matches so lastPlayed increases in assign order.
+  // For deterministic behavior, keep incrementing.
+  // Note: vsCount/pairCount keep accumulating between generates; if you want clean state on generate, clear them here.
+  // We'll leave vsCount/pairCount intact so history persists across generates; if you want reset, uncomment below.
+  // vsCount = {}; pairCount = {}; roundCounter = 0;
+
+  for(let i=0;i<numCourts;i++){
+    const m = initial[i];
+    if(m) assignMatchToCourt(i, m);
+    else courts[i] = null;
+  }
+  showMessage('初回割当（ID順）を割り当てました。');
+}
+
+/* finish a court's match and immediately produce & assign a new match for that court using pick functions */
+function finishAndNext(cidx){
+  // clear that court (player becomes available)
+  courts[cidx] = null;
+  renderCourts();
+
+  // pick next match using pickSingles/pickDoubles
+  let next = null;
+  if(matchType === 'singles') next = pickSingles();
+  else next = pickDoubles();
+
+  if(next) assignMatchToCourt(cidx, next);
+  else {
+    courts[cidx] = null;
+    renderCourts();
   }
 }
 
-let sched=null;
-
+/* UI render of courts */
 function renderCourts(){
-  let container=document.getElementById("courts");
-  container.innerHTML="";
-  if(!sched) return;
-  for(let i=0;i<sched.numCourts;i++){
-    let div=document.createElement("div");
-    div.className="court";
-    div.dataset.cid=i;
-    if(!sched.courts[i]) div.textContent=`Court ${i+1}: 空`;
-    else if(sched.mode==='s'){
-      let [p1,p2]=sched.courts[i];
-      div.textContent=`Court ${i+1}: ${p1.id} vs ${p2.id}`;
-    } else {
-      let [t1,t2]=sched.courts[i];
-      div.textContent=`Court ${i+1}: (${t1[0].id},${t1[1].id}) vs (${t2[0].id},${t2[1].id})`;
+  courtsDiv.innerHTML = '';
+  const numCourts = parseInt(courtCountInput.value,10);
+  for(let i=0;i<numCourts;i++){
+    const card = document.createElement('div');
+    card.className = 'court';
+    card.dataset.cid = i;
+    let html = `<h3>コート ${i+1}</h3>`;
+    const m = courts[i];
+    if(!m) html += `<p>試合なし</p>`;
+    else {
+      if(matchType==='singles'){
+        html += `<p>プレイヤー${m[0].id} vs ${m[1].id}</p>`;
+      } else {
+        html += `<p>(${m[0][0].id},${m[0][1].id}) vs (${m[1][0].id},${m[1][1].id})</p>`;
+      }
     }
-    div.onclick=()=>{ sched.finishMatch(i); renderCourts(); };
-    container.appendChild(div);
+    card.innerHTML = html;
+    // click => finish current match and generate next one for that court
+    card.addEventListener('click', ()=> { finishAndNext(i); });
+    courtsDiv.appendChild(card);
   }
 }
 
-// イベント設定
-document.getElementById("numPlayers").oninput=function(){ document.getElementById("numPlayersVal").textContent=this.value; };
-document.getElementById("numCourts").oninput=function(){ document.getElementById("numCourtsVal").textContent=this.value; };
+/* generatePlayersFromSlider: ensure players[] exists according to slider by creating players 1..N,
+   preserving existing players where possible (keep matches/lastPlayed)
+*/
+function generatePlayersFromSlider(){
+  const n = parseInt(playerCountInput.value,10);
+  // keep map of existing stats by id
+  const stats = {};
+  for(const p of players) stats[p.id] = {matches:p.matches,lastPlayed:p.lastPlayed,lastPartner:p.lastPartner};
+  players = [];
+  for(let i=1;i<=n;i++){
+    const p = new Player(i);
+    if(stats[i]){
+      p.matches = stats[i].matches;
+      p.lastPlayed = stats[i].lastPlayed;
+      p.lastPartner = stats[i].lastPartner;
+    }
+    players.push(p);
+  }
+  updatePlayerTable();
+}
 
-document.getElementById("generate").onclick=function(){
-  let numPlayers=parseInt(document.getElementById("numPlayers").value);
-  let numCourts=parseInt(document.getElementById("numCourts").value);
-  let mode=document.querySelector('input[name="mode"]:checked').value;
-  sched=new Scheduler(numPlayers,numCourts,mode);
-  for(let c=0;c<numCourts;c++) sched.newMatch(c);
+/* add player: reuse smallest empty id else append max+1. Update slider and UI. */
+function addPlayer(){
+  const existingIds = players.map(p=>p.id).sort((a,b)=>a-b);
+  let newId = 1;
+  for(let i=0;i<existingIds.length;i++){
+    if(existingIds[i] !== i+1){ newId = i+1; break; }
+    newId = existingIds.length+1;
+  }
+  // determine min matches among existing players to inherit
+  const minMatches = players.length ? Math.min(...players.map(p=>p.matches)) : 0;
+  const p = new Player(newId);
+  p.matches = minMatches;
+  players.push(p);
+  // ensure slider >= max id
+  playerCountInput.value = Math.max(parseInt(playerCountInput.value,10), newId);
+  updateLabels();
+  updatePlayerTable();
+  showMessage(`新しく ${newId} 番のプレイヤーが追加されました`);
+}
+
+/* remove player by id (prompt-driven) */
+function removePlayer(){
+  const id = parseInt(removeIdInput.value || prompt('削除するプレイヤー番号を入力してください:'));
+  if(isNaN(id)) return;
+  const idx = players.findIndex(p=>p.id===id);
+  if(idx===-1){ showMessage(`${id} 番のプレイヤーは存在しません`); return; }
+  // if playing on any court, clear that court
+  courts = courts.map(c => {
+    if(!c) return null;
+    if(matchType==='singles'){
+      if(c[0].id===id || c[1].id===id) return null;
+      return c;
+    } else {
+      const ids = [c[0][0].id,c[0][1].id,c[1][0].id,c[1][1].id];
+      if(ids.includes(id)) return null;
+      return c;
+    }
+  });
+  players.splice(idx,1);
+  // update slider to at most players length or keep
+  playerCountInput.value = Math.max(2, players.length);
+  updateLabels();
+  updatePlayerTable();
   renderCourts();
-};
+  showMessage(`${id} 番のプレイヤーを削除しました`);
+}
 
-document.getElementById("joinPlayer").onclick=function(){
-  if(!sched) return;
-  sched.addPlayer();
-  for(let c=0;c<sched.numCourts;c++){
-    if(!sched.courts[c]) sched.newMatch(c);
+/* ---------- イベントバインド ---------- */
+document.getElementById('generate').addEventListener('click', ()=>{
+  matchType = matchTypeSelect.value;
+  // ensure players exist for slider
+  generatePlayersFromSlider();
+  // clear vs/pair history if you want fresh start; currently we keep history
+  // vsCount = {}; pairCount = {}; roundCounter = 0;
+  const initial = initialAssignMatches();
+  // assign initial matches (deterministic ID order)
+  const numCourts = parseInt(courtCountInput.value,10);
+  courts = new Array(numCourts).fill(null);
+  for(let i=0;i<numCourts;i++){
+    if(initial[i]) assignMatchToCourt(i, initial[i]);
+    else courts[i] = null;
   }
   renderCourts();
-};
+  updatePlayerTable();
+  showMessage('試合を生成しました（初回はID順で割当）');
+});
+
+document.getElementById('addPlayer').addEventListener('click', ()=>{
+  addPlayer();
+});
+
+document.getElementById('removePlayer').addEventListener('click', ()=>{
+  removePlayer();
+});
+
+playerCountInput.addEventListener('input', ()=>{
+  updateLabels();
+  // do not automatically regenerate matches — only update player list placeholder
+  // However if you want auto-regenerate, uncomment:
+  generatePlayersFromSlider();
+});
+
+courtCountInput.addEventListener('input', ()=>{
+  updateLabels();
+  // adjust courts array length but keep current assignments where possible
+  const c = parseInt(courtCountInput.value,10);
+  const newCourts = new Array(c).fill(null);
+  for(let i=0;i<Math.min(c, courts.length); i++) newCourts[i] = courts[i];
+  courts = newCourts;
+  renderCourts();
+});
+
+matchTypeSelect.addEventListener('change', ()=>{
+  matchType = matchTypeSelect.value;
+  showMessage('試合形式を切り替えました（再生成で反映）',3000);
+});
+
+/* initialize UI */
+updateLabels();
+generatePlayersFromSlider();   // creates players 1..N with default stats 0
+renderCourts();
+updatePlayerTable();
 </script>
 </body>
 </html>
