@@ -184,13 +184,6 @@
 
     // 試合生成
     function generateMatches() {
-      Object.values(players).forEach(p => {
-        p.matches = 0;
-        p.lastMatch = -1;
-        p.opponents = {};
-        p.partners = {};
-      });
-      matchHistory = [];
       const courtCount = parseInt(document.getElementById("courtCount").value);
       const matchType = document.getElementById("matchType").value;
       const courtsDiv = document.getElementById("courts");
