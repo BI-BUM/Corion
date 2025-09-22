@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>試合管理システム</title>
+<title>MATCHSCHED</title>
 <style>
   :root{
     --bg:#f4f6f8; --card:#ffffff; --accent:#1976d2; --muted:#666;
@@ -45,39 +45,39 @@
 </style>
 </head>
 <body>
-<header><h1>試合管理システム</h1></header>
+<header><h1>MATCHSCHED for badminton or tennis<br>by Kaito Nagae</h1></header>
 
 <div class="wrap">
   <div class="controls" aria-label="controls">
     <div class="row">
-      <label>① 人数: <span id="playerCountLabel">10</span></label>
+      <label>人数: <span id="playerCountLabel">10</span></label>
       <input id="playerCount" type="range" min="5" max="20" value="10" />
     </div>
 
     <div class="row">
-      <label>② コート数: <span id="courtCountLabel">2</span></label>
+      <label>コート数: <span id="courtCountLabel">2</span></label>
       <input id="courtCount" type="range" min="1" max="6" value="2" />
     </div>
 
     <div class="row">
-      <label>③ 試合形式</label>
+      <label>試合形式</label>
       <select id="matchType"><option value="singles">シングルス</option><option value="doubles">ダブルス</option></select>
     </div>
 
     <div class="row actions">
-      <button id="generateBtn">④ 試合生成</button>
-      <button id="nextAllBtn" class="secondary">コートを一斉進行</button>
+      <button id="generateBtn">試合生成</button>
+      <button id="nextAllBtn" class="secondary">今の試合をすべて終了</button>
       <button id="resetBtn" class="secondary">リセット</button>
     </div>
 
     <div class="row actions">
-      <button id="addBtn">⑤ プレイヤー追加</button>
+      <button id="addBtn">プレイヤー追加</button>
       <input id="removeId" type="number" placeholder="削除番号" min="1" style="width:110px" />
-      <button id="removeBtn">⑥ プレイヤー削除</button>
+      <button id="removeBtn">プレイヤー削除</button>
     </div>
 
     <div class="row small muted">
-      <div>下限: シングルス = コート数×3, ダブルス = コート数×5</div>
+      <div></div>
     </div>
   </div>
 
@@ -85,22 +85,22 @@
 
   <div class="grid">
     <div class="card">
-      <h2 style="margin-top:0">⑦ コート一覧</h2>
+      <h2 style="margin-top:0">コート</h2>
       <div id="courtArea" aria-live="polite"></div>
-      <div class="small muted" style="margin-top:8px">コートをクリックするとそのコートで次の試合が生成されます。</div>
+      <div class="small muted" style="margin-top:8px"></div>
     </div>
 
     <div class="card">
-      <h2 style="margin-top:0">⑧ プレイヤー番号一覧</h2>
+      <h2 style="margin-top:0">プレイヤー番号</h2>
       <table aria-live="polite">
         <thead><tr><th>番号</th><th>状態</th><th>試合数</th></tr></thead>
         <tbody id="playerTable"></tbody>
       </table>
-      <div class="small muted" style="margin-top:8px">空席は「空席」、参加中は「参加中」と表示されます。</div>
+      <div class="small muted" style="margin-top:8px"></div>
     </div>
   </div>
 
-  <footer>保存: localStorage（リロードしても保持）</footer>
+  <footer>localStorage</footer>
 </div>
 
 <script>
@@ -192,7 +192,7 @@ function renderPlayers(){
 function renderCourts(){
   courtArea.innerHTML = "";
   if(state.courts.length===0){
-    courtArea.innerHTML = "<div class='small muted'>試合が生成されていません。④ 試合生成 を押してください。</div>";
+    courtArea.innerHTML = "<div class='small muted'>試合が生成されていません。試合生成 を押してください。</div>";
     return;
   }
   state.courts.forEach((c, idx)=>{
@@ -217,7 +217,7 @@ function formatMatchText(players){
   if(!players || players.length===0) return "待機中";
   const names = players.map(id=>`#${id}`);
   if(players.length===2) return `${names[0]} vs ${names[1]}`;
-  if(players.length===4) return `${names[0]}/${names[1]} vs ${names[2]}/${names[3]}`;
+  if(players.length===4) return `${names[0]} ${names[1]} vs ${names[2]} ${names[3]}`;
   return names.join(" vs ");
 }
 
@@ -425,7 +425,7 @@ function nextAll(){
   saveState();
   renderCourts();
   renderPlayers();
-  showMessage("全コートを一斉に進めました");
+  showMessage("今の試合をすべて終了しました");
 }
 
 /* ==========================
