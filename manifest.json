@@ -2,7 +2,7 @@
   "name": "MATCHSCHED",
   "short_name": "MATCHSCHED",
   "start_url": "./index.html",
-  "display": "fullscreen",
+  "display": "standalone",
   "icons": [
     {
       "src": "icon.png",
