@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="ja">
 <head>
@@ -21,7 +22,7 @@
   button.secondary{background:#555}
   .flex{display:flex;gap:12px;align-items:center}
   #message{min-height:28px;margin:12px 0;padding:8px;border-radius:8px;background:rgba(33,150,243,0.06);color:#0b57a4;font-weight:600}
-  .grid{display:grid;grid-template-columns:2fr 1fr;gap:12px;margin-top:12px}
+  .grid{display:grid;grid-template-columns:2fr 1fr 1fr;gap:12px;margin-top:12px}
   .card{background:var(--card);padding:12px;border-radius:10px;box-shadow:0 2px 6px rgba(0,0,0,0.05)}
   #courtArea{display:flex;flex-wrap:wrap;gap:12px}
   .court{min-width:160px;flex:1 1 160px;padding:10px;border-radius:8px;border:1px solid #e0e0e0;background:linear-gradient(180deg,#fff,#fbfdff);cursor:pointer}
@@ -76,8 +77,10 @@
 
     <div class="row actions">
       <button id="generateBtn">試合生成</button>
-      <button id="nextAllBtn" class="secondary">今の試合をすべて終了</button>
+      <button id="nextAllBtn" class="secondary">今の試合をすべて更新</button>
       <button id="resetBtn" class="secondary">リセット</button>
+      <button id="undoBtn" class="secondary">元に戻す↩</button>
+      <button id="redoBtn" class="secondary">やり直す↪</button>
     </div>
 
     <div class="row actions">
@@ -108,6 +111,17 @@
       </table>
       <div class="small muted" style="margin-top:8px"></div>
     </div>
+  
+
+    <div class="card">
+      <h2 style="margin-top:0">ログ</h2>
+      <table class="log">
+        <thead>
+          <tr><th>対戦</th><th>形式</th><th>コート</th></tr>
+        </thead>
+        <tbody id="matchLog"></tbody>
+      </table>
+    </div>
   </div>
 
   <footer>localStorage</footer>
@@ -118,6 +132,8 @@
    データ構造・永続化
    ========================== */
 const STORAGE_KEY = "match_system_v1";
+let undoStack = [];
+let redoStack = [];
 let state = loadState();
 
 /* 初期化 */
@@ -128,7 +144,7 @@ function defaultState(){
     nextId: 1,            // 新規に割り当てる最大+1
     courts: [],           // 各コート { players: [ids], round: n, text: '' }
     matchHistory: [],     // [{round, type, players: [...]}]
-    roundCounter: 1       // ラウンド番号（増加）
+    roundCounter: 1,       // ラウンド番号（増加）
   };
 }
 
@@ -171,6 +187,8 @@ const removeIdInput = document.getElementById("removeId");
 const generateBtn = document.getElementById("generateBtn");
 const nextAllBtn = document.getElementById("nextAllBtn");
 const resetBtn = document.getElementById("resetBtn");
+const undoBtn = document.getElementById("undoBtn");
+const redoBtn = document.getElementById("redoBtn");
 
 /* 初期UI表示 */
 playerCountLabel.textContent = playerCountEl.value;
@@ -223,12 +241,26 @@ function renderCourts(){
   });
 }
 
+
 function formatMatchText(players){
   if(!players || players.length===0) return "待機中";
   const names = players.map(id=>`#${id}`);
   if(players.length===2) return `${names[0]} vs ${names[1]}`;
   if(players.length===4) return `${names[0]} ${names[1]} vs ${names[2]} ${names[3]}`;
   return names.join(" vs ");
+}
+
+function renderMatchLog(){
+  const logEl = document.getElementById("matchLog");
+  if(!logEl) return;
+  const rows = state.matchHistory.slice().reverse().map(entry =>
+    `<tr>
+      <td>${entry.text}</td>
+      <td>${entry.type}</td>
+      <td>コート${entry.court}</td>
+    </tr>`
+  ).join("");
+  logEl.innerHTML = rows;
 }
 
 /* ==========================
@@ -318,7 +350,13 @@ function applyMatchResult(playersIds, courtIndex){
     p3.lastPartner = p4.id; p4.lastPartner = p3.id;
   }
 
-  state.matchHistory.push({ round, type: matchTypeEl.value, players: playersIds.slice(), court: courtIndex+1, time: Date.now() });
+  state.matchHistory.push({
+    round,
+    type:matchTypeEl.value,
+    players: playersIds.slice(),
+    court: courtIndex+1,
+    text: formatMatchText(playersIds),
+    time: Date.now() });
   saveState();
 }
 
@@ -441,6 +479,7 @@ function selectDoublesForCourt(excludeCourtIndex = null) {
    コート進行（単一コート）
    ========================== */
 function advanceCourt(courtIndex){
+  saveSnapshot();
   const type = matchTypeEl.value;
   const minPlayers = (type === "singles") ? (state.courts.length * 3) : (state.courts.length * 5);
   if(state.players.length < minPlayers){
@@ -450,6 +489,11 @@ function advanceCourt(courtIndex){
 
   const firstRun = state.matchHistory.length === 0;
   if(firstRun){
+    state.courts.forEach((court, idx)=>{
+      if(court.players && court.players.length > 0){
+      applyMatchResult(court.players, idx);
+      }
+    });
     assignInitialMatches();
     renderCourts();
     renderPlayers();
@@ -457,7 +501,9 @@ function advanceCourt(courtIndex){
     return;
   }
 
-  const selection = (type==='singles') ? selectSinglesForCourt(courtIndex) : selectDoublesForCourt(courtIndex);
+  const selection = (type==='singles')
+    ? selectSinglesForCourt(courtIndex)
+    : selectDoublesForCourt(courtIndex);
   if(!selection){
     showMessage("試合生成できる十分なプレイヤーがいません");
     return;
@@ -469,6 +515,7 @@ function advanceCourt(courtIndex){
   saveState();
   renderCourts();
   renderPlayers();
+  renderMatchLog();
   showMessage(`コート${courtIndex+1} を進めました: ${formatMatchText(selection)}`);
 }
 
@@ -476,6 +523,7 @@ function advanceCourt(courtIndex){
    全コート一斉進行
    ========================== */
 function nextAll(){
+  saveSnapshot();
   const type = matchTypeEl.value;
   const minPlayers = (type === "singles") ? (state.courts.length * 3) : (state.courts.length * 5);
   if(state.players.length < minPlayers){
@@ -492,6 +540,7 @@ function nextAll(){
   saveState();
   renderCourts();
   renderPlayers();
+  renderMatchLog();
   showMessage("今の試合をすべて終了しました");
 }
 
@@ -580,6 +629,7 @@ function applyPlayerCountFromSlider(){
    プレイヤー追加 / 削除（空席再利用）
    ========================== */
 function addPlayer(){
+  saveSnapshot();
   const targetMax = parseInt(playerCountEl.value) || 20;
   if(state.players.length >= targetMax){
     showMessage("満員のため追加できません");
@@ -600,6 +650,7 @@ function addPlayer(){
 }
 
 function removePlayer(){
+  saveSnapshot();
   const id = parseInt(removeIdInput.value);
   if(!id){ showMessage("削除する番号を入力してください"); return; }
   const idx = state.players.findIndex(p=>p.id===id);
@@ -644,6 +695,7 @@ generateBtn.addEventListener("click", ()=>{
   // ④ 初回割当 or 空いているコートに割当
   if(state.matchHistory.length === 0){
     assignInitialMatches();
+    renderMatchLog();
     showMessage("初回割当を ID 順で行いました");
   } else {
     for(let i=0;i<state.courts.length;i++){
@@ -666,12 +718,27 @@ generateBtn.addEventListener("click", ()=>{
 nextAllBtn.addEventListener("click", nextAll);
 resetBtn.addEventListener("click", ()=>{
   if(!confirm("すべてのデータを初期化しますか？")) return;
+  
   localStorage.removeItem(STORAGE_KEY);
   state = defaultState();
+  
+  undoStack = [];
+  redoStack = [];
+  
   renderCourts();
   renderPlayers();
+  renderMatchLog();
   showMessage("データをリセットしました");
 });
+undoBtn.addEventListener("click", undo);
+redoBtn.addEventListener("click", redo);
+
+function saveSnapshot(){
+  const snapshot = JSON.stringify(state);
+  undoStack.push(snapshot);
+  // 新しい操作が入ったら redoStack はクリア
+  redoStack = [];
+}
 
 /* ページ読み込み時に既存stateから初期レンダリング */
 (function init(){
@@ -686,7 +753,40 @@ resetBtn.addEventListener("click", ()=>{
   applySettings();
   renderPlayers();
   renderCourts();
+  renderMatchLog();
+  saveSnapshot(); // ★ 最初の状態を積む
 })();
+
+function undo(){
+  if (undoStack.length === 0){
+    showMessage("元に戻せる状態がありません");
+    return;
+  }
+  redoStack.push(JSON.stringify(state));
+  const snapshot = undoStack.pop();
+  state = JSON.parse(snapshot);
+  saveState();
+  renderCourts();
+  renderPlayers();
+  renderMatchLog();
+  showMessage("元に戻しました");
+}
+
+function redo(){
+  if (redoStack.length === 0){
+    showMessage("やり直せる状態がありません");
+    return;
+  }
+  undoStack.push(JSON.stringify(state));
+  const snapshot = redoStack.pop();
+  state = JSON.parse(snapshot);
+  saveState();
+  renderCourts();
+  renderPlayers();
+  renderMatchLog();
+  showMessage("やり直しました");
+}
+
 </script>
 </body>
 </html>
