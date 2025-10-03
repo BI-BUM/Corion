@@ -1,6 +1,6 @@
 {
-  "name": "MATCHSCHED",
-  "short_name": "MATCHSCHED",
+  "name": "CORION",
+  "short_name": "CORION",
   "start_url": "./index.html",
   "display": "standalone",
   "icons": [
