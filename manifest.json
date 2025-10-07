@@ -1,6 +1,6 @@
 {
-  "name": "CORION",
-  "short_name": "CORION",
+  "name": "Corion",
+  "short_name": "Corion",
   "start_url": "./index.html",
   "display": "standalone",
   "icons": [
