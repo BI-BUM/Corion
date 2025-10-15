@@ -70,6 +70,19 @@
     background: white;
   }
 
+  .log-scroll {
+    max-height: 480px;        /* 表示領域の高さ（必要に応じて調整） */
+    overflow-y: auto;         /* 縦スクロールを有効にする */
+    border: 1px solid #eee;   /* 枠線（任意） */
+    border-radius: 6px;
+  }
+  .player-scroll {
+    max-height: 474px;        /* コート6面時の高さに合わせる（必要に応じて調整） */
+    overflow-y: auto;         /* 縦スクロールを有効にする */
+    border: 1px solid #eee;   /* 枠線（任意） */
+    border-radius: 6px;
+  }
+
   table{width:100%;border-collapse:collapse}
   th,td{padding:10px;border-bottom:1px solid #eee;text-align:center;font-size:14px}
   th{background:#fafafa;font-weight:700}
@@ -141,6 +154,7 @@
   <div id="message" role="status"></div>
 
   <div class="grid">
+    
     <div class="card">
       <h2 style="margin-top:0">コート</h2>
       <div id="courtArea" aria-live="polite"></div>
@@ -149,23 +163,28 @@
 
     <div class="card">
       <h2 style="margin-top:0">プレイヤー</h2>
-      <table aria-live="polite">
-        <thead><tr><th>番号</th><th>状態</th><th>試合数</th></tr></thead>
-        <tbody id="playerTable"></tbody>
-      </table>
+      <div class="player-scroll">
+        <table aria-live="polite">
+          <thead><tr><th>番号</th><th>状態</th><th>試合数</th></tr></thead>
+          <tbody id="playerTable"></tbody>
+        </table>
+      </div>
       <div class="small muted" style="margin-top:8px"></div>
     </div>
   
 
     <div class="card">
       <h2 style="margin-top:0">ログ</h2>
-      <table class="log">
-        <thead>
-          <tr><th>対戦</th><th>形式</th><th>コート</th></tr>
-        </thead>
-        <tbody id="matchLog"></tbody>
-      </table>
+      <div class="log-scroll">
+        <table class="log">
+          <thead>
+            <tr><th>対戦</th><th>形式</th><th>コート</th></tr>
+          </thead>
+          <tbody id="matchLog"></tbody>
+        </table>
+      </div>
     </div>
+
   </div>
 
   <footer>localStorage</footer>
