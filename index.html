@@ -5,7 +5,7 @@
 <link rel="manifest" href="manifest.json">
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Corion</title>
+<title>CORION</title>
 <meta name="description" content="Corionはバドミントンやテニスで試合をするための補助ツールです">
 <meta name="keywords" content="Corion, badminton, tennis, match, scheduler, court">
 <meta name="author" content="KaitoNagae">
@@ -42,6 +42,34 @@
   .court{min-width:160px;flex:1 1 160px;padding:10px;border-radius:8px;border:1px solid #e0e0e0;background:linear-gradient(180deg,#fff,#fbfdff);cursor:pointer}
   .court h3{margin:0 0 8px 0;font-size:15px}
   .court p{margin:0;font-weight:700}
+  
+  .court-label-input {
+    width: 100%;
+      margin: 4px 0 8px 0;
+    padding: 6px;
+    font-size: 14px;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+  }
+  .advance-btn {
+    color: black;
+    width: 100%;
+    height: 60px;
+    background: white;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 15px;
+    font-weight: bold;
+    text-align: center;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .advance-btn:hover {
+    background: white;
+  }
+
   table{width:100%;border-collapse:collapse}
   th,td{padding:10px;border-bottom:1px solid #eee;text-align:center;font-size:14px}
   th{background:#fafafa;font-weight:700}
@@ -161,6 +189,7 @@ function defaultState(){
     courts: [],           // 各コート { players: [ids], round: n, text: '' }
     matchHistory: [],     // [{round, type, players: [...]}]
     roundCounter: 1,       // ラウンド番号（増加）
+    courtLabels: {}
   };
 }
 
@@ -239,20 +268,37 @@ function renderCourts(){
     courtArea.innerHTML = "<div class='small muted'>試合が生成されていません。試合生成 を押してください。</div>";
     return;
   }
+  
   state.courts.forEach((c, idx)=>{
+    
     const div = document.createElement("div");
     div.className = "court";
+    
+    const labelInput = document.createElement("input");
+    labelInput.type = "text";
+    labelInput.placeholder = "ラベル";
+    labelInput.value = state.courtLabels[idx + 1] || "";
+    labelInput.className = "court-label-input";
+    labelInput.addEventListener("input", () => {
+      state.courtLabels[idx + 1] = labelInput.value;
+      saveState();
+    });
+
     const title = document.createElement("h3");
     title.textContent = `コート ${idx+1}`;
-    const p = document.createElement("p");
-    if(c.players && c.players.length>0){
-      p.textContent = formatMatchText(c.players);
-    } else {
-      p.textContent = "待機中";
-    }
+    
     div.appendChild(title);
-    div.appendChild(p);
-    div.addEventListener("click", ()=>{ advanceCourt(idx); });
+    div.appendChild(labelInput);
+    
+    const advanceBtn = document.createElement("button");
+    advanceBtn.className = "advance-btn";
+    advanceBtn.textContent = (Array.isArray(c.players) && c.players.length > 0)
+      ? formatMatchText(c.players)
+      : "待機中";
+    advanceBtn.addEventListener("click", () => {
+      advanceCourt(idx);
+    });
+    div.appendChild(advanceBtn);
     courtArea.appendChild(div);
   });
 }
@@ -806,10 +852,3 @@ function redo(){
 </script>
 </body>
 </html>
-
-
-
-
-
-
-
