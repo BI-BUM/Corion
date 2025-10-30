@@ -36,11 +36,11 @@
   button.secondary{background:#555}
   .flex{display:flex;gap:12px;align-items:center}
   #message{min-height:28px;margin:12px 0;padding:8px;border-radius:8px;background:rgba(33,150,243,0.06);color:#0b57a4;font-weight:600}
-  .grid{display:grid;grid-template-columns:2fr 1fr 1fr;gap:12px;margin-top:12px}
+  .grid{display:grid;grid-template-columns:3fr 3fr 2fr;gap:12px;margin-top:12px}
   .card{background:var(--card);padding:12px;border-radius:10px;box-shadow:0 2px 6px rgba(0,0,0,0.05)}
   #courtArea{display:flex;flex-wrap:wrap;gap:12px}
-  .court{min-width:160px;flex:1 1 160px;padding:10px;border-radius:8px;border:1px solid #e0e0e0;background:linear-gradient(180deg,#fff,#fbfdff);cursor:pointer}
-  .court h3{margin:0 0 8px 0;font-size:15px}
+  .court{min-width:160px;flex:1 1 160px;padding:10px;border-radius:8px;border:1px solid #e0e0e0;background:var(--accent);cursor:pointer}
+  .court h3{margin:0 0 8px 0;font-size:15px;color: white;}
   .court p{margin:0;font-weight:700}
   
   .court-label-input {
@@ -50,6 +50,15 @@
     font-size: 14px;
     border: 1px solid #ccc;
     border-radius: 6px;
+  }
+  .player-label-input {
+    width: 100%;
+    padding: 6px;
+    font-size: 13px;
+    border: 1px solid var(--muted);
+    border-radius: 6px;
+    background: var(--card);
+    color: #000;
   }
   .advance-btn {
     color: black;
@@ -165,7 +174,7 @@
       <h2 style="margin-top:0">プレイヤー</h2>
       <div class="player-scroll">
         <table aria-live="polite">
-          <thead><tr><th>番号</th><th>状態</th><th>試合数</th></tr></thead>
+          <thead><tr><th>番号</th><th>ラベル</th><th>状態</th><th>試合数</th></tr></thead>
           <tbody id="playerTable"></tbody>
         </table>
       </div>
@@ -208,7 +217,8 @@ function defaultState(){
     courts: [],           // 各コート { players: [ids], round: n, text: '' }
     matchHistory: [],     // [{round, type, players: [...]}]
     roundCounter: 1,       // ラウンド番号（増加）
-    courtLabels: {}
+    courtLabels: {},
+    playerLabels: {} 
   };
 }
 
@@ -271,12 +281,41 @@ function renderPlayers(){
   const maxId = Math.max(state.nextId-1, ...usedIds, 0);
   playerTable.innerHTML = "";
   const desiredRows = Math.max(maxId, parseInt(playerCountEl.value) || 5);
-  for (let i = 1; i <= desiredRows; i++){
+  for (let i = 1; i <= desiredRows; i++) {
     const tr = document.createElement("tr");
-    const p = state.players.find(x=>x.id===i);
-    tr.innerHTML = `<td>#${i}</td>
-                    <td>${p ? "<strong>参加中</strong>" : "空席"}</td>
-                    <td>${p ? p.matches : "-"}</td>`;
+    const p = state.players.find(x => x.id === i);
+
+    // 番号欄
+    const tdId = document.createElement("td");
+    tdId.textContent = `#${i}`;
+
+    // ラベル欄
+    const tdLabel = document.createElement("td");
+    const labelInput = document.createElement("input");
+    labelInput.type = "text";
+    labelInput.placeholder = "ラベル";
+    labelInput.value = state.playerLabels?.[i] || "";
+    labelInput.className = "player-label-input";
+    labelInput.addEventListener("input", () => {
+      state.playerLabels[i] = labelInput.value;
+      saveState();
+    });
+    tdLabel.appendChild(labelInput);
+
+    // 状態欄
+    const tdStatus = document.createElement("td");
+    tdStatus.innerHTML = p ? "<strong>参加中</strong>" : "空席";
+
+    // 試合数欄
+    const tdMatches = document.createElement("td");
+    tdMatches.textContent = p ? p.matches : "-";
+
+    // 順番に追加
+    tr.appendChild(tdId);
+    tr.appendChild(tdLabel);
+    tr.appendChild(tdStatus);
+    tr.appendChild(tdMatches);
+
     playerTable.appendChild(tr);
   }
 }
@@ -871,4 +910,3 @@ function redo(){
 </script>
 </body>
 </html>
-
