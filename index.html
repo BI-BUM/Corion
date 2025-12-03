@@ -12,112 +12,214 @@
 <meta name="robots" content="index, follow">
 <link rel="canonical" href="https://bi-bum.github.io/Corion/">
 <style>
-  :root{--bg:#f4f6f8; --card:#ffffff; --accent:#1976d2; --muted:#666;--success:#ff0000;}
-  *{box-sizing:border-box}
-  body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,"Helvetica Neue",Arial;background:var(--bg);color:#000000}
+  :root {
+    --bg: #f4f6f8;
+    --card: #ffffff;
+    --accent: #1976d2;
+    --muted: #666;
+    --success: #ff0000;
+    --border: #ccc;
+    --hover: #f9f9f9;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial;
+    background: var(--bg);
+    color: #000;
+  }
   header {
     padding: 2px;
     text-align: center;
-    background-color: #ffffff;
-    color: white;
+    background: var(--card);
+    color: black;
   }
   .logo-header {
-    height: 80px;   /* ← 好きな高さに変更 */
-    width: auto;     /* アスペクト比を維持 */
+    height: 80px;
+    width: auto;
     display: block;
     margin: 0 auto;
   }
-  .wrap{max-width:1100px;margin:18px auto;padding:12px}
-  .controls{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;background:var(--card);padding:12px;border-radius:10px;align-items:center}
-  .controls .row{display:flex;gap:8px;align-items:center}
-  .controls label{font-size:14px;color:var(--muted)}
-  .controls input[type=range]{width:100%}
-  select,button,input[type=number]{padding:8px;border-radius:6px;border:1px solid #ddd;background:white;font-size:16px}
-  button{cursor:pointer;border:none;background:var(--accent);color:white;padding:6px 12px;border-radius:6px;font-size:16px}
-  button.secondary{background:#555}
-  .flex{display:flex;gap:12px;align-items:center}
-  #message{min-height:28px;margin:12px 0;padding:8px;border-radius:8px;background:rgba(33,150,243,0.06);color:#0b57a4;font-weight:600}
-  .grid{display:grid;grid-template-columns:3fr 3fr 2fr;gap:12px;margin-top:12px}
-  .card{background:var(--card);padding:12px;border-radius:10px;box-shadow:0 2px 6px rgba(0,0,0,0.05)}
-  #courtArea{display:flex;flex-wrap:wrap;gap:12px}
-  .court{min-width:160px;flex:1 1 160px;padding:10px;border-radius:8px;border:1px solid #e0e0e0;background:var(--accent);cursor:pointer}
-  .court h3{margin:0 0 8px 0;font-size:15px;color: white;}
-  .court p{margin:0;font-weight:700}
-  
-  .court-label-input {
+  .wrap {
     width: 100%;
-      margin: 4px 0 8px 0;
-    padding: 6px;
-    font-size: 14px;
-    border: 1px solid #ccc;
-    border-radius: 6px;
+    margin: 18px auto;
+    padding: 12px;
   }
-  .player-label-input {
+  .controls {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+    background: var(--card);
+    padding: 12px;
+    border-radius: 10px;
+    align-items: center;
+  }
+  .controls .row {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+  }
+  .controls label {
+    font-size: 14px;
+    color: var(--muted);
+  }
+  .controls input[type=range] { width: 100%; }
+  .flex {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+  }
+  .grid {
+    display: grid;
+    grid-template-columns: 3fr 3fr 2fr;
+    gap: 12px;
+    margin-top: 12px;
     width: 100%;
-    padding: 6px;
-    font-size: 13px;
-    border: 1px solid var(--muted);
+  }
+  .card {
+    background: var(--card);
+    padding: 12px;
+    border-radius: 10px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+  }
+  #courtArea {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+  .court {
+    min-width: 160px;
+    flex: 1 1 220px;
+    padding: 8px;
+    border-radius: 8px;
+    border: 1px solid #e0e0e0;
+    background: var(--accent);
+    cursor: pointer;
+  }
+  .court-label-input {
+    margin-bottom: 8px;
+  }
+  .court h3 {
+    margin: 0 0 8px 0;
+    font-size: 15px;
+    color: white;
+  }
+  .card .court p {
+    margin: 0;
+    font-weight: 700;
+    font-size: 20px;
+  }
+  .input-label,
+  .court-label-input,
+  .player-label-input,
+  #removeId {
+    width: 100%;
+    padding: 6px;              
+    font-size: 16px;           
+    border: 1px solid var(--border);
     border-radius: 6px;
     background: var(--card);
     color: #000;
   }
+  select#matchType {
+    width: 30%;
+    font-size: 16px;
+    padding: 8px;
+  }
+  button {
+    cursor: pointer;
+    border: none;
+    background: var(--accent);
+    color: white;
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-size: 16px;
+  }
+  button.secondary { background: #555; }
   .advance-btn {
     color: black;
     width: 100%;
     height: 60px;
-    background: white;
-    border: 1px solid #ccc;
+    background: var(--card);
+    border: 1px solid var(--border);
     border-radius: 6px;
     cursor: pointer;
-    font-size: 15px;
+    font-size: 20px;
     font-weight: bold;
     text-align: center;
     display: flex;
     align-items: center;
     justify-content: center;
   }
-  .advance-btn:hover {
-    background: white;
-  }
-
-  .log-scroll {
-    max-height: 480px;        /* 表示領域の高さ（必要に応じて調整） */
-    overflow-y: auto;         /* 縦スクロールを有効にする */
-    border: 1px solid #eee;   /* 枠線（任意） */
+  .skip-btn {
+    background: var(--card);
+    color: black;
+    border: 1px solid var(--border);
     border-radius: 6px;
+    padding: 6px 12px;
+    font-size: 14px;
+    font-weight: bold;
+    cursor: pointer;
+    width: 40px;
+    height: 28px;
+    text-align: center;
   }
+  .skip-btn:hover { background: var(--hover); }
+  .skip-btn.locked {
+    background: #ddd;
+    color: #666;
+    border: 1px solid #aaa;
+    cursor: not-allowed;
+  }
+  .log-scroll,
   .player-scroll {
-    max-height: 474px;        /* コート6面時の高さに合わせる（必要に応じて調整） */
-    overflow-y: auto;         /* 縦スクロールを有効にする */
-    border: 1px solid #eee;   /* 枠線（任意） */
+    max-height: 480px;
+    overflow-y: auto;
+    border: 1px solid #eee;
     border-radius: 6px;
   }
-
-  table{width:100%;border-collapse:collapse}
-  th,td{padding:10px;border-bottom:1px solid #eee;text-align:center;font-size:14px}
-  th{background:#fafafa;font-weight:700}
-  .small{font-size:12px;color:var(--muted)}
-  .muted{color:var(--muted)}
-  .actions{display:flex;gap:8px;flex-wrap:wrap}
-  .notice{color:var(--success);font-weight:700}
-  footer{margin-top:18px;text-align:center;color:var(--muted);font-size:13px}
-
-  @media (max-width:900px){
-    .controls {
-      grid-template-columns: 1fr;
-    }
-    .grid {
-      grid-template-columns: 1fr;
-    }
-
-    /* スマホ用の試合形式選択ボックスのサイズ調整 */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+  th, td {
+    padding: 10px;
+    border-bottom: 1px solid #eee;
+    text-align: center;
+    font-size: 14px;
+  }
+  th {
+    background: #fafafa;
+    font-weight: 700;
+  }
+  .small { font-size: 12px; color: var(--muted); }
+  .muted { color: var(--muted); }
+  .actions { display: flex; gap: 8px; flex-wrap: wrap; }
+  .notice { color: var(--success); font-weight: 700; }
+  #message {
+    min-height: 28px;
+    margin: 12px 0;
+    padding: 8px;
+    border-radius: 8px;
+    background: rgba(33,150,243,0.06);
+    color: #0b57a4;
+    font-weight: 600;
+  }
+  footer {
+    margin-top: 18px;
+    text-align: center;
+    color: var(--muted);
+    font-size: 13px;
+  }
+  @media (max-width:900px) {
+    .controls { grid-template-columns: 1fr; }
+    .grid { grid-template-columns: 1fr; }
     select#matchType {
       width: 100%;
       font-size: 16px;
       padding: 12px;
     }
   }
-
 </style>
 </head>
 <body>
@@ -146,8 +248,8 @@
       <button id="generateBtn">試合生成</button>
       <button id="nextAllBtn" class="secondary">今の試合をすべて更新</button>
       <button id="resetBtn" class="secondary">リセット</button>
-      <button id="undoBtn" class="secondary">元に戻す↩</button>
-      <button id="redoBtn" class="secondary">やり直す↪</button>
+      <button id="undoBtn" class="secondary">↩元に戻す↩</button>
+      <button id="redoBtn" class="secondary">↪やり直す↪</button>
     </div>
 
     <div class="row actions">
@@ -175,13 +277,12 @@
       <h2 style="margin-top:0">プレイヤー</h2>
       <div class="player-scroll">
         <table aria-live="polite">
-          <thead><tr><th>番号</th><th>ラベル</th><th>状態</th><th>試合数</th></tr></thead>
+          <thead><tr><th>番号</th><th>ラベル</th><th>状態</th><th>試合数</th><th>操作</tr></thead>
           <tbody id="playerTable"></tbody>
         </table>
       </div>
       <div class="small muted" style="margin-top:8px"></div>
     </div>
-  
 
     <div class="card">
       <h2 style="margin-top:0">ログ</h2>
@@ -209,27 +310,25 @@ let undoStack = [];
 let redoStack = [];
 let state = loadState();
 
-/* 初期化 */
 function defaultState(){
   return {
-    players: [],          // Player objects
-    availableIds: [],     // 空席番号（再利用優先）
-    nextId: 1,            // 新規に割り当てる最大+1
-    courts: [],           // 各コート { players: [ids], round: n, text: '' }
-    matchHistory: [],     // [{round, type, players: [...]}]
-    roundCounter: 1,       // ラウンド番号（増加）
+    players: [],
+    availableIds: [],
+    nextId: 1,
+    courts: [],
     courtLabels: {},
+    matchHistory: [],
+    roundCounter: 1,
     playerLabels: {} 
   };
 }
 
-function loadState(){
-  try{
+function loadState() {
+  try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    if(raw) return JSON.parse(raw);
-  }catch(e){}
-  const s = defaultState();
-  return s;
+    if (raw) return JSON.parse(raw);
+  } catch {}
+  return defaultState();
 }
 
 function saveState(){
@@ -238,43 +337,55 @@ function saveState(){
 
 /* ==========================
    ヘルパー（Playerオブジェクト）
-   Player: { id, matches, lastMatch, opponents:{id:count}, partners:{id:count}, lastPartner }
    ========================== */
-function makePlayer(id){
-  return { id, matches:0, lastMatch:0, opponents:{}, partners:{}, lastPartner:null };
+function makePlayer(id) {
+  return {
+    id,
+    matches: 0,
+    lastMatch: 0, 
+    opponents: {}, 
+    partners: {}, 
+    lastPartner: null,
+    locked: false 
+  };
 }
 
 /* ==========================
    UI要素
    ========================== */
-const playerCountEl = document.getElementById("playerCount");
+const playerCountEl    = document.getElementById("playerCount");
 const playerCountLabel = document.getElementById("playerCountLabel");
-const courtCountEl = document.getElementById("courtCount");
-const courtCountLabel = document.getElementById("courtCountLabel");
-const matchTypeEl = document.getElementById("matchType");
-const messageEl = document.getElementById("message");
-const courtArea = document.getElementById("courtArea");
-const playerTable = document.getElementById("playerTable");
+const courtCountEl     = document.getElementById("courtCount");
+const courtCountLabel  = document.getElementById("courtCountLabel");
+const matchTypeEl      = document.getElementById("matchType");
+const messageEl        = document.getElementById("message");
+const courtArea        = document.getElementById("courtArea");
+const playerTable      = document.getElementById("playerTable");
+const matchLogEl       = document.getElementById("matchLog");
 
-const addBtn = document.getElementById("addBtn");
-const removeBtn = document.getElementById("removeBtn");
-const removeIdInput = document.getElementById("removeId");
-const generateBtn = document.getElementById("generateBtn");
-const nextAllBtn = document.getElementById("nextAllBtn");
-const resetBtn = document.getElementById("resetBtn");
-const undoBtn = document.getElementById("undoBtn");
-const redoBtn = document.getElementById("redoBtn");
+const addBtn           = document.getElementById("addBtn");
+const removeBtn        = document.getElementById("removeBtn");
+const removeIdInput    = document.getElementById("removeId");
+const generateBtn      = document.getElementById("generateBtn");
+const nextAllBtn       = document.getElementById("nextAllBtn");
+const resetBtn         = document.getElementById("resetBtn");
+const undoBtn          = document.getElementById("undoBtn");
+const redoBtn          = document.getElementById("redoBtn");
 
-/* 初期UI表示 */
 playerCountLabel.textContent = playerCountEl.value;
-courtCountLabel.textContent = courtCountEl.value;
+courtCountLabel.textContent  = courtCountEl.value;
 
 /* ==========================
    UIレンダー
    ========================== */
 function showMessage(msg, timeout=3000){
   messageEl.textContent = msg || "";
-  if(timeout>0){ clearTimeout(showMessage._t); showMessage._t = setTimeout(()=>{ if(messageEl.textContent===msg) messageEl.textContent = ""; }, timeout); }
+  if(timeout>0){
+    clearTimeout(showMessage._t);
+    showMessage._t = setTimeout(()=>{
+      if(messageEl.textContent===msg) messageEl.textContent = "";
+    }, timeout);
+  }
 }
 
 function renderPlayers(){
@@ -282,15 +393,14 @@ function renderPlayers(){
   const maxId = Math.max(state.nextId-1, ...usedIds, 0);
   playerTable.innerHTML = "";
   const desiredRows = Math.max(maxId, parseInt(playerCountEl.value) || 5);
+  
   for (let i = 1; i <= desiredRows; i++) {
     const tr = document.createElement("tr");
     const p = state.players.find(x => x.id === i);
 
-    // 番号欄
     const tdId = document.createElement("td");
     tdId.textContent = `#${i}`;
 
-    // ラベル欄
     const tdLabel = document.createElement("td");
     const labelInput = document.createElement("input");
     labelInput.type = "text";
@@ -303,36 +413,109 @@ function renderPlayers(){
     });
     tdLabel.appendChild(labelInput);
 
-    // 状態欄
     const tdStatus = document.createElement("td");
-    tdStatus.innerHTML = p ? "<strong>参加中</strong>" : "空席";
-
-    // 試合数欄
+    tdStatus.innerHTML = p
+      ? (p.locked ? "<strong>ロック</strong>" : "<strong>参加中</strong>")
+      : "空席";
+  
     const tdMatches = document.createElement("td");
     tdMatches.textContent = p ? p.matches : "-";
 
-    // 順番に追加
-    tr.appendChild(tdId);
-    tr.appendChild(tdLabel);
-    tr.appendChild(tdStatus);
-    tr.appendChild(tdMatches);
+    tr.append(tdId, tdLabel, tdStatus, tdMatches);
+
+    const tdAction = document.createElement("td");
+    if(p){
+      const skipBtn = document.createElement("button");
+      skipBtn.className = p.locked ? "skip-btn locked" : "skip-btn";
+      skipBtn.textContent = "";
+      skipBtn.addEventListener("click", () => {
+        handlePlayerAction(p.id);
+      });
+      tdAction.appendChild(skipBtn);
+    } else {
+      tdAction.textContent = "-";
+    }
+    tr.appendChild(tdAction);
 
     playerTable.appendChild(tr);
   }
 }
 
-function renderCourts(){
+function handlePlayerAction(id) {
+  saveSnapshot();
+
+  const courtIndex = state.courts.findIndex(c => c.players?.includes(id));
+  const player = state.players.find(p => p.id === id);
+  if (!player) return;
+
+  if (courtIndex === -1) {
+    // コートにいない → ロック切替
+    player.locked = !player.locked;
+    if (player.locked) {
+      showMessage(`#${id} をロックしました`);
+    } else {
+      const others = state.players.filter(p => p.id !== id && !p.locked);
+      const minMatches = others.length > 0
+        ? Math.min(...others.map(p => p.matches))
+        : 0;
+      player.matches = minMatches;
+      showMessage(`#${id} のロックを解除しました（試合数を調整済み）`);
+    }
+  } else {
+    const lastMatch = state.matchHistory.pop();
+    if (lastMatch) {
+      lastMatch.players.forEach(pid => {
+        const p = state.players.find(x => x.id === pid);
+        if (p) p.matches -= 1;
+      });
+    }
+
+    if (!player.locked) player.matches += 1;
+
+    const court = state.courts[courtIndex];
+    court.players = court.players.filter(pid => pid !== id);
+
+    const type = matchTypeEl.value;
+    const needed = type === "singles" ? 2 : 4;
+    const missing = needed - court.players.length;
+
+    if (missing > 0) {
+      const selection = type === "singles"
+        ? selectSinglesForCourt(courtIndex)
+        : selectDoublesForCourt(courtIndex);
+
+      if (selection) {
+        const newPlayers = selection.filter(pid => !court.players.includes(pid));
+        court.players.push(...newPlayers.slice(0, missing));
+      }
+    }
+
+    applyMatchResult(court.players, courtIndex);
+    showMessage(`#${id} をスキップしました`);
+  }
+
+  saveState();
+  renderCourts();
+  renderPlayers();
+  renderMatchLog();
+}
+
+function renderCourts() {
   courtArea.innerHTML = "";
-  if(state.courts.length===0){
-    courtArea.innerHTML = "<div class='small muted'>試合が生成されていません。試合生成 を押してください。</div>";
+
+  if (state.courts.length === 0) {
+    courtArea.innerHTML =
+      "<div class='small muted'>試合が生成されていません。試合生成 を押してください。</div>";
     return;
   }
-  
-  state.courts.forEach((c, idx)=>{
-    
+
+  state.courts.forEach((court, idx) => {
     const div = document.createElement("div");
     div.className = "court";
-    
+
+    const title = document.createElement("h3");
+    title.textContent = `コート ${idx + 1}`;
+
     const labelInput = document.createElement("input");
     labelInput.type = "text";
     labelInput.placeholder = "ラベル";
@@ -343,102 +526,87 @@ function renderCourts(){
       saveState();
     });
 
-    const title = document.createElement("h3");
-    title.textContent = `コート ${idx+1}`;
-    
-    div.appendChild(title);
-    div.appendChild(labelInput);
-    
     const advanceBtn = document.createElement("button");
     advanceBtn.className = "advance-btn";
-    advanceBtn.textContent = (Array.isArray(c.players) && c.players.length > 0)
-      ? formatMatchText(c.players)
-      : "待機中";
-    advanceBtn.addEventListener("click", () => {
-      advanceCourt(idx);
-    });
-    div.appendChild(advanceBtn);
+    advanceBtn.textContent =
+      Array.isArray(court.players) && court.players.length > 0
+        ? formatMatchText(court.players)
+        : "待機中";
+    advanceBtn.addEventListener("click", () => advanceCourt(idx));
+
+    div.append(title, labelInput, advanceBtn);
     courtArea.appendChild(div);
   });
 }
 
+function formatMatchText(players) {
+  if (!players || players.length === 0) return "待機中";
 
-function formatMatchText(players){
-  if(!players || players.length===0) return "待機中";
-  const names = players.map(id=>`#${id}`);
-  if(players.length===2) return `${names[0]} vs ${names[1]}`;
-  if(players.length===4) return `${names[0]} ${names[1]} vs ${names[2]} ${names[3]}`;
+  const names = players.map(id => `#${id}`);
+
+  if (players.length === 2) {
+    return `${names[0]} vs ${names[1]}`;
+  }
+
+  if (players.length === 4) {
+    return `${names[0]} ${names[1]} vs ${names[2]} ${names[3]}`;
+  }
+
   return names.join(" vs ");
 }
 
-function renderMatchLog(){
-  const logEl = document.getElementById("matchLog");
-  if(!logEl) return;
-  const rows = state.matchHistory.slice().reverse().map(entry =>
-    `<tr>
-      <td>${entry.text}</td>
-      <td>${entry.type}</td>
-      <td>コート${entry.court}</td>
-    </tr>`
-  ).join("");
-  logEl.innerHTML = rows;
+function renderMatchLog() {
+  if (!matchLogEl) return;
+
+  const rows = state.matchHistory
+    .slice()
+    .reverse()
+    .map(entry => `
+      <tr>
+        <td>${entry.text}</td>
+        <td>${entry.type}</td>
+        <td>コート${entry.court}</td>
+      </tr>
+    `)
+    .join("");
+
+  matchLogEl.innerHTML = rows;
 }
 
-/* ==========================
-   ユーティリティ: 利用可能プレイヤー抽出
-   - 同時に行われている試合の参加者は除外
-   ========================== */
-function getActiveIdsOnCourts(excludeCourtIndex=null){
-  const set = new Set();
-  state.courts.forEach((c, idx)=>{
-    if(idx===excludeCourtIndex) return;
-    if(c.players) c.players.forEach(id=>set.add(id));
+function getAvailablePlayers(excludeCourtIndex = null) {
+  const busyIds = new Set();
+  state.courts.forEach((court, idx) => {
+    if (idx === excludeCourtIndex) return;
+    if (court.players) {
+      court.players.forEach(id => busyIds.add(id));
+    }
   });
-  return set;
+
+  return state.players.filter(player =>
+    !busyIds.has(player.id) && !player.locked
+  );
 }
 
-function getAvailablePlayers(excludeCourtIndex=null){
-  const busy = getActiveIdsOnCourts(excludeCourtIndex);
-  return state.players.filter(p=>!busy.has(p.id));
-}
-
-/* ==========================
-   ソート基準ヘルパー
-   優先順位（低い数を優先）：
-   1) matches（少ない）
-   2) lastMatch（古い => 小さい）
-   3) id（最終手段）
-   ========================== */
-function sortByPriority(list){
-  return list.slice().sort((a,b)=>{
-    if(a.matches !== b.matches) return a.matches - b.matches;
-    if(a.lastMatch !== b.lastMatch) return a.lastMatch - b.lastMatch;
-    return a.id - b.id;
-  });
-}
-
-/* ==========================
-   対戦/ペア回数取得（修正版）
-   ========================== */
 function oppCount(a, b) {
-  const aid = (a && typeof a === 'object') ? a.id : a;
-  const bid = (b && typeof b === 'object') ? b.id : b;
-  const pa = state.players.find(x => x.id === aid) || a; // a がすでにプレイヤーならそれを使う
-  const map = (pa && pa.opponents) ? pa.opponents : {};
-  return map[bid] || 0;
+  const aid = typeof a === "object" ? a.id : a;
+  const bid = typeof b === "object" ? b.id : b;
+
+  const playerA = state.players.find(p => p.id === aid) || a;
+  const opponentsMap = playerA?.opponents || {};
+
+  return opponentsMap[bid] || 0;
 }
 
 function partnerCount(a, b) {
-  const aid = (a && typeof a === 'object') ? a.id : a;
-  const bid = (b && typeof b === 'object') ? b.id : b;
-  const pa = state.players.find(x => x.id === aid) || a;
-  const map = (pa && pa.partners) ? pa.partners : {};
-  return map[bid] || 0;
+  const aid = typeof a === "object" ? a.id : a;
+  const bid = typeof b === "object" ? b.id : b;
+
+  const playerA = state.players.find(p => p.id === aid) || a;
+  const partnersMap = playerA?.partners || {};
+
+  return partnersMap[bid] || 0;
 }
 
-/* ==========================
-   試合更新ロジック（試合成立後の履歴更新）
-   ========================== */
 function applyMatchResult(playersIds, courtIndex){
   const round = state.roundCounter++;
   const involved = playersIds.map(id=>state.players.find(p=>p.id===id));
@@ -481,119 +649,107 @@ function applyMatchResult(playersIds, courtIndex){
   saveState();
 }
 
-/* ==========================
-   シングルス選出（条件完全対応版）
-   ========================== */
 function selectSinglesForCourt(excludeCourtIndex = null) {
-  const available = getAvailablePlayers(excludeCourtIndex);
-  if (available.length < 2) return null;
+  const availablePlayers = getAvailablePlayers(excludeCourtIndex);
+  if (availablePlayers.length < 2) return null;
 
-  // 経過時間を候補内で相対計算
-  const maxLM = Math.max(...available.map(p => (p.lastMatch ?? -Infinity)));
-  const age = p => (maxLM - (p.lastMatch ?? -Infinity)); // 大きいほど休んでいる
+  // 経過時間（休養度）を計算: 値が大きいほど休んでいる
+  const maxLastMatch = Math.max(...availablePlayers.map(p => p.lastMatch ?? -Infinity));
+  const restAge = p => maxLastMatch - (p.lastMatch ?? -Infinity);
 
-  // 1人目: 試合数 少 → 経過長 大 → 番号 小
-  const sorted = available.slice().sort((a, b) => {
+  // 1人目選定: 試合数少 → 休養長 → ID小
+  const [player1] = availablePlayers.slice().sort((a, b) => {
     if (a.matches !== b.matches) return a.matches - b.matches;
-    const ag = age(a), bg = age(b);
+    const ag = restAge(a), bg = restAge(b);
     if (ag !== bg) return bg - ag;
     return a.id - b.id;
   });
-  const p1 = sorted[0];
 
-  // 2人目: p1との対戦回数 少 → 試合数 少 → 経過長 大 → 番号 小
-  const candidates = available.filter(p => p.id !== p1.id);
-  candidates.sort((a, b) => {
-    const ca = oppCount(p1, a), cb = oppCount(p1, b);
+  // 2人目選定: p1との対戦回数少 → 試合数少 → 休養長 → ID小
+  const candidates = availablePlayers.filter(p => p.id !== player1.id);
+  const [player2] = candidates.sort((a, b) => {
+    const ca = oppCount(player1, a), cb = oppCount(player1, b);
     if (ca !== cb) return ca - cb;
     if (a.matches !== b.matches) return a.matches - b.matches;
-    const ag = age(a), bg = age(b);
+    const ag = restAge(a), bg = restAge(b);
     if (ag !== bg) return bg - ag;
     return a.id - b.id;
   });
 
-  const p2 = candidates[0];
-  if (!p2) return null;
-  return [p1.id, p2.id];
+  return player2 ? [player1.id, player2.id] : null;
 }
 
-/* ==========================
-   ダブルス選出（条件完全対応版）
-   ========================== */
 function selectDoublesForCourt(excludeCourtIndex = null) {
-  const available = getAvailablePlayers(excludeCourtIndex);
-  if (available.length < 4) return null;
+  const availablePlayers = getAvailablePlayers(excludeCourtIndex);
+  if (availablePlayers.length < 4) return null;
 
-  const maxLM = Math.max(...available.map(p => (p.lastMatch ?? -Infinity)));
-  const age = p => (maxLM - (p.lastMatch ?? -Infinity));
+  // 経過時間（休養度）を計算: 値が大きいほど休んでいる
+  const maxLastMatch = Math.max(...availablePlayers.map(p => p.lastMatch ?? -Infinity));
+  const restAge = p => maxLastMatch - (p.lastMatch ?? -Infinity);
 
-  // 1人目
-  const sorted = available.slice().sort((a, b) => {
+  // 1人目: 試合数少 → 休養長 → ID小
+  const [player1] = availablePlayers.slice().sort((a, b) => {
     if (a.matches !== b.matches) return a.matches - b.matches;
-    const ag = age(a), bg = age(b);
+    const ag = restAge(a), bg = restAge(b);
     if (ag !== bg) return bg - ag;
     return a.id - b.id;
   });
-  const p1 = sorted[0];
 
-  // 2人目（p1のペア）
-  let p2cands = available.filter(p =>
-    p.id !== p1.id &&
-    p.id !== p1.lastPartner
+  // 2人目（player1のペア）: ペア回数少 → 試合数少 → 休養長 → ID小
+  let partnerCandidates = availablePlayers.filter(p =>
+    p.id !== player1.id && p.id !== player1.lastPartner
   );
-  if (p2cands.length === 0) {
-    p2cands = available.filter(p => p.id !== p1.id);
+  if (partnerCandidates.length === 0) {
+    partnerCandidates = availablePlayers.filter(p => p.id !== player1.id);
   }
-  p2cands.sort((a, b) => {
-    const pa = partnerCount(p1, a), pb = partnerCount(p1, b);
+  const [player2] = partnerCandidates.sort((a, b) => {
+    const pa = partnerCount(player1, a), pb = partnerCount(player1, b);
     if (pa !== pb) return pa - pb;
     if (a.matches !== b.matches) return a.matches - b.matches;
-    const ag = age(a), bg = age(b);
+    const ag = restAge(a), bg = restAge(b);
     if (ag !== bg) return bg - ag;
     return a.id - b.id;
   });
-  const p2 = p2cands[0];
-  if (!p2) return null;
+  if (!player2) return null;
 
-  // 3人目（対戦相手1）
-  const p3cands = available.filter(p =>
-    p.id !== p1.id &&
-    p.id !== p2.id &&
-    p.id !== p1.lastPartner &&
-    p.id !== p2.lastPartner
+  // 3人目（対戦相手1）: 対戦回数少 → 試合数少 → 休養長 → ID小
+  const opponentCandidates = availablePlayers.filter(p =>
+    ![player1.id, player2.id].includes(p.id) &&
+    p.id !== player1.lastPartner &&
+    p.id !== player2.lastPartner
   );
-  p3cands.sort((a, b) => {
-    const minA = Math.min(oppCount(a, p1), oppCount(a, p2));
-    const minB = Math.min(oppCount(b, p1), oppCount(b, p2));
+  const [player3] = opponentCandidates.sort((a, b) => {
+    const minA = Math.min(oppCount(a, player1), oppCount(a, player2));
+    const minB = Math.min(oppCount(b, player1), oppCount(b, player2));
     if (minA !== minB) return minA - minB;
     if (a.matches !== b.matches) return a.matches - b.matches;
-    const ag = age(a), bg = age(b);
+    const ag = restAge(a), bg = restAge(b);
     if (ag !== bg) return bg - ag;
     return a.id - b.id;
   });
-  const p3 = p3cands[0];
-  if (!p3) return null;
+  if (!player3) return null;
 
-  // 4人目（p3のペア）
-  let p4cands = available.filter(p =>
-    ![p1.id, p2.id, p3.id].includes(p.id) &&
-    p.id !== p3.lastPartner
+  // 4人目（player3のペア）: ペア回数少 → 試合数少 → 休養長 → ID小
+  let partnerOppCandidates = availablePlayers.filter(p =>
+    ![player1.id, player2.id, player3.id].includes(p.id) &&
+    p.id !== player3.lastPartner
   );
-  if (p4cands.length === 0) {
-    p4cands = available.filter(p => ![p1.id, p2.id, p3.id].includes(p.id));
+  if (partnerOppCandidates.length === 0) {
+    partnerOppCandidates = availablePlayers.filter(p =>
+      ![player1.id, player2.id, player3.id].includes(p.id)
+    );
   }
-  p4cands.sort((a, b) => {
-    const pa = partnerCount(p3, a), pb = partnerCount(p3, b);
+  const [player4] = partnerOppCandidates.sort((a, b) => {
+    const pa = partnerCount(player3, a), pb = partnerCount(player3, b);
     if (pa !== pb) return pa - pb;
     if (a.matches !== b.matches) return a.matches - b.matches;
-    const ag = age(a), bg = age(b);
+    const ag = restAge(a), bg = restAge(b);
     if (ag !== bg) return bg - ag;
     return a.id - b.id;
   });
-  const p4 = p4cands[0];
-  if (!p4) return null;
+  if (!player4) return null;
 
-  return [p1.id, p2.id, p3.id, p4.id];
+  return [player1.id, player2.id, player3.id, player4.id];
 }
 
 /* ==========================
@@ -610,14 +766,10 @@ function advanceCourt(courtIndex){
 
   const firstRun = state.matchHistory.length === 0;
   if(firstRun){
-    state.courts.forEach((court, idx)=>{
-      if(court.players && court.players.length > 0){
-      applyMatchResult(court.players, idx);
-      }
-    });
     assignInitialMatches();
     renderCourts();
     renderPlayers();
+    renderMatchLog();
     showMessage("初回割当を ID 順で行いました");
     return;
   }
@@ -672,7 +824,7 @@ function assignInitialMatches(){
   const type = matchTypeEl.value;
   const perCourt = (type==='singles') ? 2 : 4;
   const sortedPlayers = state.players.slice().sort((a,b)=>a.id-b.id);
-  state.courts = state.courts.map(()=>({players:[],round:null,text:''}));
+  state.courts = state.courts.map(()=>({players:[],round:null,}));
   let idx = 0;
   for(let c=0;c<state.courts.length;c++){
     const take = sortedPlayers.slice(idx, idx+perCourt).map(p=>p.id);
@@ -751,20 +903,34 @@ function applyPlayerCountFromSlider(){
    ========================== */
 function addPlayer(){
   saveSnapshot();
-  const targetMax = parseInt(playerCountEl.value) || 20;
+  
+  const targetMax = parseInt(playerCountEl.max) || 20;
   if(state.players.length >= targetMax){
     showMessage("満員のため追加できません");
     return;
   }
+
   const used = new Set(state.players.map(p=>p.id));
   let newId = 1;
   while(used.has(newId)) newId++;
-  const minMatches = state.players.length ? Math.min(...state.players.map(p=>p.matches||0)) : 0;
+
+  const activePlayers = state.players.filter(p => !p.locked);
+  const minMatches = activePlayers.length
+    ? Math.min(...activePlayers.map(p => p.matches || 0))
+    : 0;
+  
   const p = makePlayer(newId);
   p.matches = minMatches;
+
   state.players.push(p);
   state.nextId = Math.max(state.nextId, newId+1);
-  state.availableIds = state.availableIds.filter(x=>x!==newId);
+  state.availableIds = state.availableIds.filter(x => x !== newId);
+
+  // 人数スライダーとラベルを自動で +1（UI連動）
+  const newSliderValue = Math.min(parseInt(playerCountEl.value) + 1, parseInt(playerCountEl.max));
+  playerCountEl.value = String(newSliderValue);
+  playerCountLabel.textContent = playerCountEl.value;
+
   saveState();
   renderPlayers();
   showMessage(`新しく #${newId} のプレイヤーが追加されました`);
@@ -911,4 +1077,3 @@ function redo(){
 </script>
 </body>
 </html>
-
